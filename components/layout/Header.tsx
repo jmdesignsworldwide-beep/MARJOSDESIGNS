@@ -24,7 +24,7 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
 
       {/* logo on mobile (desktop shows it in the sidebar) */}
       <div className="lg:hidden">
-        <Logo />
+        <Logo size={52} />
       </div>
 
       <div className="ml-auto flex items-center gap-2">
