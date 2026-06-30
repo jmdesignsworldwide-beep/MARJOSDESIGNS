@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ──────────────────────────────────────────────────────────────
+   Design tokens — Marjos Designs "Monster" system
+   Surfaces are theme-aware (RGB triplets so Tailwind can apply
+   alpha). Brand gold + status colors live in tailwind.config.ts.
+   ────────────────────────────────────────────────────────────── */
+
+:root {
+  /* LIGHT THEME — elegant off-white, never flat white */
+  --bg: 247 247 248; /* #F7F7F8 */
+  --bg-elevated: 255 255 255;
+  --surface: 250 250 250; /* #FAFAFA */
+  --card: 255 255 255;
+  --border: 228 228 231; /* soft neutral */
+  --input: 226 226 230;
+  --ring: 200 148 30; /* gold-deep — legible on light */
+  --foreground: 13 13 13; /* charcoal */
+  --muted: 240 240 242;
+  --muted-foreground: 90 90 98;
+
+  /* gold for text/borders on LIGHT must be the deep tone */
+  --gold-on-surface: 200 148 30; /* #C8941E */
+
+  --pulse-color: rgba(239, 68, 68, 0.5);
+}
+
+.dark {
+  /* DARK THEME — near-black with breathing gold aurora */
+  --bg: 10 10 11; /* #0A0A0B */
+  --bg-elevated: 18 18 20;
+  --surface: 20 20 22;
+  --card: 22 22 25;
+  --border: 255 255 255; /* used at low alpha via /[0.08] */
+  --input: 255 255 255;
+  --ring: 224 168 46; /* gold-mid glows on dark */
+  --foreground: 245 245 247;
+  --muted: 30 30 34;
+  --muted-foreground: 161 161 170;
+
+  /* gold for text/borders on DARK can be the bright tone */
+  --gold-on-surface: 244 199 64; /* #F4C740 */
+
+  --pulse-color: rgba(239, 68, 68, 0.55);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Numeric values (RD$ amounts, KPIs) line up in columns */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  /* Gold text helper that stays legible per-theme */
+  .text-gold-brand {
+    color: rgb(var(--gold-on-surface));
+  }
+
+  ::selection {
+    background: rgba(224, 168, 46, 0.28);
+  }
+
+  /* Premium custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--border) / 0.5);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--muted-foreground) / 0.4);
+    background-clip: padding-box;
+  }
+}
+
+@layer utilities {
+  /* Subtle glass effect — stronger in dark, whisper-light in light */
+  .glass {
+    background: rgb(var(--card) / 0.7);
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
+  .dark .glass {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  /* The brand gold gradient as text */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #c8941e 0%, #e0a82e 50%, #f4c740 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Hairline gold top border for KPI lines */
+  .border-gold-line {
+    border-image: linear-gradient(90deg, #c8941e, #f4c740) 1;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Respect prefers-reduced-motion — kill non-essential movement
+   ────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
