@@ -1,15 +1,23 @@
 'use client'
 
 import { Bell, Menu } from 'lucide-react'
+import type { Profile } from '@/lib/auth/guards'
 import { Logo } from './Logo'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
+import { UserMenu } from './UserMenu'
 
 /**
- * Top header. On mobile shows the hamburger + logo; on desktop the
- * logo lives in the sidebar so we keep the left side light. Right side
- * reserves space for notifications + user (placeholder this Tanda).
+ * Top header. On mobile shows the hamburger + logo; on desktop the logo
+ * lives in the sidebar. Right side: theme toggle, notifications placeholder,
+ * and the real user menu (with sign-out) when a profile is present.
  */
-export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
+export function Header({
+  onOpenMenu,
+  profile,
+}: {
+  onOpenMenu: () => void
+  profile?: Profile
+}) {
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-border bg-bg/70 px-4 backdrop-blur-xl dark:border-white/[0.06] sm:px-6">
       {/* hamburger — mobile/tablet only */}
@@ -40,13 +48,16 @@ export function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
           <span className="absolute right-2.5 top-2.5 h-2 w-2 rounded-full bg-gold-gradient ring-2 ring-bg" />
         </button>
 
-        {/* user placeholder */}
-        <div
-          aria-label="Usuario"
-          className="grid h-10 w-10 place-items-center rounded-xl bg-gold-gradient text-sm font-bold text-charcoal-900"
-        >
-          M
-        </div>
+        {profile ? (
+          <UserMenu profile={profile} />
+        ) : (
+          <div
+            aria-label="Usuario"
+            className="grid h-10 w-10 place-items-center rounded-xl bg-gold-gradient text-sm font-bold text-charcoal-900"
+          >
+            M
+          </div>
+        )}
       </div>
     </header>
   )

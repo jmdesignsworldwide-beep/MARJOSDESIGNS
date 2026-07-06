@@ -1,27 +1,36 @@
 'use client'
 
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import type { UserRole } from '@/lib/auth/guards'
 import { Logo } from './Logo'
-import { navItems } from './nav'
+import { navFor } from './nav'
 
 /** Shared nav list, used by both the desktop rail and the mobile drawer. */
-export function NavList({ onNavigate }: { onNavigate?: () => void }) {
+export function NavList({
+  role,
+  onNavigate,
+}: {
+  role?: UserRole
+  onNavigate?: () => void
+}) {
+  const pathname = usePathname()
+  const items = navFor(role)
+
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon
-        // First item is highlighted as the "active" example.
-        const active = item.label === 'Dashboard'
+        const active =
+          pathname === item.href || pathname.startsWith(item.href + '/')
         return (
-          <a
-            key={item.label}
+          <Link
+            key={item.href}
             href={item.href}
-            onClick={(e) => {
-              if (item.disabled) e.preventDefault()
-              onNavigate?.()
-            }}
-            aria-disabled={item.disabled}
+            onClick={onNavigate}
+            aria-current={active ? 'page' : undefined}
             className={cn(
               'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
               active
@@ -47,7 +56,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
               )}
             />
             {item.label}
-          </a>
+          </Link>
         )
       })}
     </nav>
@@ -55,14 +64,14 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 /** Desktop sidebar rail — fixed, hidden below lg (mobile uses the drawer). */
-export function Sidebar() {
+export function Sidebar({ role }: { role?: UserRole }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-bg-elevated/80 backdrop-blur-xl lg:flex dark:border-white/[0.06]">
       <div className="flex h-16 items-center px-5">
         <Logo withWordmark />
       </div>
       <div className="mt-2 flex flex-1 flex-col pb-6">
-        <NavList />
+        <NavList role={role} />
         <div className="mt-auto px-5">
           <p className="text-[11px] text-muted-foreground/70">
             Marjos Designs · v0.1

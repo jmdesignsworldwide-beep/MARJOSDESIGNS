@@ -1,27 +1,41 @@
 import 'server-only'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+
+type CookieToSet = { name: string; value: string; options: CookieOptions }
 
 /**
- * Server-only Supabase admin client.
+ * Server Supabase client bound to the request cookies. Use inside Server
+ * Components, Route Handlers and Server Actions. Runs as the signed-in
+ * user (anon key + their JWT) so RLS applies — this is the least-privilege
+ * client and should be the default everywhere.
  *
- * Uses the SERVICE_ROLE key — full access, bypasses RLS. This module
- * is marked `server-only`: importing it from a Client Component is a
- * build error, so the secret can never reach the browser bundle.
- *
- * The key must be set as a Sensitive, server-only env var in Vercel
- * (NEVER prefixed with NEXT_PUBLIC_).
+ * Cookie writes throw when called from a Server Component render (you can
+ * only set cookies in an Action or Route Handler); we swallow that case so
+ * read-only usage in components keeps working. Session refresh happens in
+ * middleware.
  */
-export function getSupabaseAdminClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+export function createSupabaseServerClient() {
+  const cookieStore = cookies()
 
-  if (!url || !serviceRoleKey) {
-    throw new Error(
-      'Supabase admin client requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
-    )
-  }
-
-  return createClient(url, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  })
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: CookieToSet[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            )
+          } catch {
+            // Called from a Server Component render — ignore; middleware refreshes.
+          }
+        },
+      },
+    },
+  )
 }

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import type { UserRole } from '@/lib/auth/guards'
 import { Logo } from './Logo'
 import { NavList } from './Sidebar'
 
@@ -16,9 +17,11 @@ import { NavList } from './Sidebar'
 export function MobileDrawer({
   open,
   onClose,
+  role,
 }: {
   open: boolean
   onClose: () => void
+  role?: UserRole
 }) {
   useEffect(() => {
     if (!open) return
@@ -68,7 +71,7 @@ export function MobileDrawer({
               </button>
             </div>
             <div className="mt-2 flex flex-1 flex-col pb-6">
-              <NavList onNavigate={onClose} />
+              <NavList role={role} onNavigate={onClose} />
             </div>
           </motion.aside>
         </div>

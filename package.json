@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "clsx": "^2.1.1",
     "framer-motion": "^11.5.4",
@@ -17,7 +18,8 @@
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.5.2"
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/node": "^20.16.5",
