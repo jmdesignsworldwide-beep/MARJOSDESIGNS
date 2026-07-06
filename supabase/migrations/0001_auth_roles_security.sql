@@ -64,21 +64,17 @@ create table if not exists public.audit_log (
 
 create index if not exists audit_log_time_idx on public.audit_log (created_at desc);
 
--- ───────────────────── Helper functions (hardened) ────────────────────────
--- SECURITY DEFINER so RLS policies can check role without recursing on
--- profiles. Fixed search_path, execute revoked from anon.
+-- ───────────────────── Helper function (hardened) ─────────────────────────
+-- SECURITY DEFINER so RLS policies can check the super_admin role without
+-- recursing on profiles. Lives in a PRIVATE schema (NOT exposed by PostgREST)
+-- so it can't be invoked as an RPC by signed-in users — this closes the
+-- Supabase "SECURITY DEFINER function executable by authenticated" advisor
+-- warning while the RLS policies can still call it. Fixed search_path.
+create schema if not exists private;
+grant usage on schema private to authenticated;
+revoke all on schema private from anon, public;
 
-create or replace function public.current_user_role()
-returns public.user_role
-language sql
-security definer
-stable
-set search_path = public, pg_temp
-as $$
-  select role from public.profiles where id = auth.uid();
-$$;
-
-create or replace function public.is_super_admin()
+create or replace function private.is_super_admin()
 returns boolean
 language sql
 security definer
@@ -93,10 +89,8 @@ as $$
   );
 $$;
 
-revoke all on function public.current_user_role() from public, anon;
-revoke all on function public.is_super_admin()    from public, anon;
-grant execute on function public.current_user_role() to authenticated;
-grant execute on function public.is_super_admin()    to authenticated;
+revoke all on function private.is_super_admin() from public, anon;
+grant execute on function private.is_super_admin() to authenticated;
 
 -- keep updated_at fresh
 create or replace function public.set_updated_at()
@@ -160,19 +154,19 @@ alter table public.audit_log      force  row level security;
 drop policy if exists profiles_select on public.profiles;
 create policy profiles_select on public.profiles
   for select to authenticated
-  using (id = auth.uid() or public.is_super_admin());
+  using (id = auth.uid() or private.is_super_admin());
 
 -- Only super_admin may create / modify profiles from the client.
 drop policy if exists profiles_insert on public.profiles;
 create policy profiles_insert on public.profiles
   for insert to authenticated
-  with check (public.is_super_admin());
+  with check (private.is_super_admin());
 
 drop policy if exists profiles_update on public.profiles;
 create policy profiles_update on public.profiles
   for update to authenticated
-  using (public.is_super_admin())
-  with check (public.is_super_admin());
+  using (private.is_super_admin())
+  with check (private.is_super_admin());
 -- (no DELETE policy: nobody deletes profiles from the client)
 
 -- access_history: employees can read NOTHING here; super_admin reads all.
@@ -180,13 +174,13 @@ create policy profiles_update on public.profiles
 drop policy if exists access_history_select on public.access_history;
 create policy access_history_select on public.access_history
   for select to authenticated
-  using (public.is_super_admin());
+  using (private.is_super_admin());
 
 -- audit_log: same — super_admin read only, inserts via service_role.
 drop policy if exists audit_log_select on public.audit_log;
 create policy audit_log_select on public.audit_log
   for select to authenticated
-  using (public.is_super_admin());
+  using (private.is_super_admin());
 
 -- Extra hardening: strip UPDATE/DELETE/TRUNCATE grants from client roles.
 revoke update, delete, truncate on public.access_history from anon, authenticated;
