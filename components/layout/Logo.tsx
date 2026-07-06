@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
  */
 export function Logo({
   className,
-  size = 44,
+  size = 52,
   withWordmark = false,
 }: {
   className?: string
@@ -26,17 +26,25 @@ export function Logo({
           'relative shrink-0 overflow-hidden rounded-xl',
           // placard: light surface in BOTH themes so the white-bg logo blends,
           // but dressed up with a gold hairline + shadow in dark.
-          'bg-white p-1.5 ring-1 ring-black/5',
+          'bg-white ring-1 ring-black/5',
           'dark:ring-1 dark:ring-gold-mid/40 dark:shadow-gold-glow',
         )}
         style={{ width: size, height: size }}
       >
+        {/*
+          The source asset is a tall 704×1472 portrait with large empty
+          white margins top & bottom. object-cover (centered) fills the
+          square placard with the actual mark — only the dead white
+          margins get cropped, and they blend into the white placard —
+          so the logo reads big and confident instead of letterboxed.
+          Same file, just scaled to fill; never redrawn.
+        */}
         <Image
           src="/marjos-logo.jpeg"
           alt="Marjos Designs"
           fill
-          sizes="64px"
-          className="object-contain p-0.5"
+          sizes="(max-width: 1024px) 64px, 56px"
+          className="scale-[1.06] object-cover object-center"
           priority
         />
       </div>
