@@ -6,14 +6,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Format a number as Dominican pesos (RD$). */
+/**
+ * Format a number as Dominican pesos (RD$). Uses decimal style with a manual
+ * "RD$" prefix (NOT currency style) so the output is byte-identical between
+ * the Node server and the browser — currency-style symbol/spacing can differ
+ * across ICU versions and cause React hydration mismatches.
+ */
 export function formatDOP(value: number, opts: { decimals?: boolean } = {}) {
-  return new Intl.NumberFormat('es-DO', {
-    style: 'currency',
-    currency: 'DOP',
+  const n = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: opts.decimals ? 2 : 0,
     maximumFractionDigits: opts.decimals ? 2 : 0,
   }).format(value)
+  return `RD$${n}`
 }
 
 /** Format a plain number with thousands separators. */

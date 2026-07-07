@@ -18,12 +18,15 @@ export function ThemeToggle({ className }: { className?: string }) {
   useEffect(() => setMounted(true), [])
 
   const isDark = resolvedTheme === 'dark'
+  // Until mounted the theme is unknown on the server — keep a stable, neutral
+  // aria-label so SSR and the first client render match (no hydration mismatch).
+  const label = !mounted ? 'Cambiar tema' : isDark ? 'Activar tema claro' : 'Activar tema oscuro'
 
   return (
     <button
       type="button"
-      aria-label={isDark ? 'Activar tema claro' : 'Activar tema oscuro'}
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
+      aria-label={label}
+      onClick={() => mounted && setTheme(isDark ? 'light' : 'dark')}
       className={cn(
         'relative grid h-10 w-10 place-items-center rounded-xl',
         'border border-border bg-card/60 text-foreground',

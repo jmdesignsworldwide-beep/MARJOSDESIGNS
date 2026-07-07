@@ -267,6 +267,7 @@ export function Calculator({
                       type="number"
                       inputMode="decimal"
                       min="0"
+                      aria-label="Valor del descuento"
                       value={discountValue}
                       onChange={(e) => setDiscountValue(e.target.value)}
                       placeholder={discountType === 'amount' ? 'Monto' : '%'}
@@ -441,6 +442,7 @@ function NumField({
           inputMode="decimal"
           min="0"
           step="any"
+          aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="0"
