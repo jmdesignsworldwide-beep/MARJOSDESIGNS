@@ -51,9 +51,26 @@ export function TableBody({ children }: { children: React.ReactNode }) {
   return <tbody className="divide-y divide-border">{children}</tbody>
 }
 
-export function Tr({ children }: { children: React.ReactNode }) {
+export function Tr({
+  children,
+  onClick,
+  className,
+}: {
+  children: React.ReactNode
+  onClick?: () => void
+  className?: string
+}) {
   return (
-    <tr className="transition-colors hover:bg-muted/50">{children}</tr>
+    <tr
+      onClick={onClick}
+      className={cn(
+        'transition-colors hover:bg-muted/50',
+        onClick && 'cursor-pointer',
+        className,
+      )}
+    >
+      {children}
+    </tr>
   )
 }
 
