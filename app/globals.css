@@ -119,6 +119,31 @@
 }
 
 /* ──────────────────────────────────────────────────────────────
+   Print — clean quote/PDF: hide the app chrome, show only the doc
+   ────────────────────────────────────────────────────────────── */
+@media print {
+  aside,
+  header,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .print-area * {
+    color: #0d0d0d !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
    Respect prefers-reduced-motion — kill non-essential movement
    ────────────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
