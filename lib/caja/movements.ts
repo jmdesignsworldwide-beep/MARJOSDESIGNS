@@ -5,7 +5,7 @@ import type { CashMethod } from './data'
 
 export interface MovementInput {
   direction?: 'entrada' | 'salida'
-  source: 'order_payment' | 'order_reverso' | 'pos_sale' | 'pos_void' | 'manual'
+  source: 'order_payment' | 'order_reverso' | 'pos_sale' | 'pos_void' | 'manual' | 'expense'
   amount: number
   method: CashMethod
   reference?: string | null
@@ -14,6 +14,7 @@ export interface MovementInput {
   orderId?: string | null
   paymentId?: number | null
   posSaleId?: string | null
+  expenseId?: number | null
   createdBy: string
 }
 
@@ -56,6 +57,7 @@ export async function recordCashMovement(
     order_id: input.orderId || null,
     payment_id: input.paymentId ?? null,
     pos_sale_id: input.posSaleId || null,
+    expense_id: input.expenseId ?? null,
     created_by: input.createdBy,
   })
   return !error

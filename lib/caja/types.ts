@@ -19,7 +19,7 @@ export interface CashRegister {
 export interface CashMovement {
   id: number
   direction: 'entrada' | 'salida'
-  source: 'order_payment' | 'order_reverso' | 'pos_sale' | 'pos_void' | 'manual'
+  source: 'order_payment' | 'order_reverso' | 'pos_sale' | 'pos_void' | 'manual' | 'expense'
   amount: number
   method: CashMethod
   reference: string | null

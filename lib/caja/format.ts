@@ -22,6 +22,7 @@ export const sourceLabel: Record<string, string> = {
   pos_sale: 'Venta rápida',
   pos_void: 'Anulación de venta',
   manual: 'Movimiento manual',
+  expense: 'Gasto en efectivo',
 }
 
 export function fmtDateLong(d: string): string {
