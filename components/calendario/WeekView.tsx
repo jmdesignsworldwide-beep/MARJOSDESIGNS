@@ -1,0 +1,66 @@
+'use client'
+
+import { cn, formatDOP } from '@/lib/utils'
+import { weekDates, dayNum, weekdayLabels } from '@/lib/calendario/dates'
+import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type CalendarOrder, type CalendarNote } from '@/lib/calendario/types'
+
+export function WeekView({
+  anchor,
+  todayISO,
+  ordersByDate,
+  notesByDate,
+  onSelectOrder,
+  onAddNote,
+}: {
+  anchor: string
+  todayISO: string
+  ordersByDate: Map<string, CalendarOrder[]>
+  notesByDate: Map<string, CalendarNote[]>
+  onSelectOrder: (o: CalendarOrder) => void
+  onAddNote: (iso: string) => void
+}) {
+  const days = weekDates(anchor)
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7">
+      {days.map((iso, i) => {
+        const orders = ordersByDate.get(iso) ?? []
+        const notes = notesByDate.get(iso) ?? []
+        const active = orders.filter((o) => o.stage !== 'entregada')
+        const isToday = iso === todayISO
+        return (
+          <div key={iso} className={cn('flex flex-col rounded-2xl border p-2.5 dark:border-white/[0.08]', isToday ? 'border-gold-mid/40 bg-gold-gradient-soft' : 'border-border')}>
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{weekdayLabels[i]}</p>
+                <p className={cn('text-lg font-bold', isToday && 'text-gold-brand')}>{dayNum(iso)}</p>
+              </div>
+              <button type="button" onClick={() => onAddNote(iso)} className="grid h-6 w-6 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" title="Agregar nota">+</button>
+            </div>
+            {active.length >= OVERLOAD_WARN && (
+              <p className="mb-1.5 rounded-lg bg-status-overdue/10 px-2 py-1 text-[11px] font-semibold text-status-overdue">⚡ {active.length} entregas</p>
+            )}
+            <div className="space-y-1.5">
+              {orders.map((o) => {
+                const m = calStateMeta[orderCalState(o.stage, o.deliveryDate, todayISO)]
+                return (
+                  <button key={o.id} onClick={() => onSelectOrder(o)} className={cn('block w-full rounded-lg border px-2 py-1.5 text-left transition-transform hover:scale-[1.02]', m.chip)}>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', m.dot, m.pulse && 'animate-pulse')} />
+                      <span className="truncate text-xs font-semibold">{o.clientName ?? `#${o.number}`}</span>
+                    </div>
+                    <p className="truncate text-[11px] text-muted-foreground">{o.summary}</p>
+                    {o.balance > 0 && <p className="tnum text-[11px] font-medium text-status-overdue">💰 {formatDOP(o.balance)}</p>}
+                  </button>
+                )
+              })}
+              {notes.map((n) => (
+                <div key={n.id} className={cn('rounded-lg border border-dashed px-2 py-1 text-[11px]', noteKindMeta[n.kind].chip)}>{noteKindMeta[n.kind].emoji} {n.title}</div>
+              ))}
+              {orders.length === 0 && notes.length === 0 && <p className="py-2 text-center text-[11px] text-muted-foreground/60">—</p>}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

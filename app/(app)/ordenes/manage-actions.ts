@@ -23,6 +23,7 @@ function revalidateOrder(id: string) {
   revalidatePath(`/ordenes/${id}`)
   revalidatePath('/ordenes')
   revalidatePath('/dashboard')
+  revalidatePath('/calendario')
 }
 
 /** Recompute orders.amount_paid from the append-only payments (server truth). */

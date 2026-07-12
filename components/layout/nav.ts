@@ -32,6 +32,7 @@ export const navItems: NavItem[] = [
   { label: 'Mi Calendario', icon: CalendarDays, href: '/mi-calendario', roles: ['empleado'], placeholder: true },
 
   // Admin-only
+  { label: 'Calendario', icon: CalendarDays, href: '/calendario', roles: ['super_admin'] },
   { label: 'Caja', icon: Wallet, href: '/caja', roles: ['super_admin'] },
   { label: 'Venta rápida', icon: ShoppingCart, href: '/pos', roles: ['super_admin'] },
   { label: 'Gastos', icon: ReceiptText, href: '/gastos', roles: ['super_admin'] },
