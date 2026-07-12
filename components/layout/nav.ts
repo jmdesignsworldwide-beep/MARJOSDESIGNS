@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   ReceiptText,
   LineChart,
+  Truck,
   type LucideIcon,
 } from 'lucide-react'
 import type { UserRole } from '@/lib/auth/guards'
@@ -40,7 +41,8 @@ export const navItems: NavItem[] = [
   { label: 'Órdenes', icon: ClipboardList, href: '/ordenes', roles: ['super_admin'], placeholder: true },
   { label: 'Cotizador', icon: Calculator, href: '/cotizador', roles: ['super_admin'], placeholder: true },
   { label: 'Clientes', icon: Users, href: '/clientes', roles: ['super_admin'], placeholder: true },
-  { label: 'Inventario', icon: Package, href: '/inventario', roles: ['super_admin'], placeholder: true },
+  { label: 'Proveedores', icon: Truck, href: '/proveedores', roles: ['super_admin'] },
+  { label: 'Inventario', icon: Package, href: '/inventario', roles: ['super_admin'] },
   { label: 'Usuarios', icon: UserCog, href: '/usuarios', roles: ['super_admin'] },
   { label: 'Ajustes', icon: Settings, href: '/ajustes', roles: ['super_admin'], placeholder: true },
 ]
