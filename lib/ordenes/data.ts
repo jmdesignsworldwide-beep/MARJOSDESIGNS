@@ -35,13 +35,14 @@ export interface Order {
   stage: OrderStage
   delivery_date: string | null
   notes: string | null
+  cancel_reason: string | null
   source: 'directa' | 'cotizacion'
   quote_id: string | null
   created_at: string
 }
 
 const ORDER_COLS =
-  'id, number, client_id, client_name, assigned_to, assigned_name, description, subtotal, discount_type, discount_value, discount_amount, total, deposit, amount_paid, stage, delivery_date, notes, source, quote_id, created_at'
+  'id, number, client_id, client_name, assigned_to, assigned_name, description, subtotal, discount_type, discount_value, discount_amount, total, deposit, amount_paid, stage, delivery_date, notes, cancel_reason, source, quote_id, created_at'
 
 /** Orders sorted by delivery date (soonest first) — sensible for a workshop. */
 export async function listOrders(): Promise<Order[]> {

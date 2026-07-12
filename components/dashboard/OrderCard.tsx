@@ -9,6 +9,7 @@ import { riseItem } from '@/components/motion/variants'
 
 const stageBadge: Record<OrderStage, { status: 'process' | 'ready' | 'neutral'; label: string }> = {
   recibida: { status: 'process', label: 'Recibida' },
+  en_diseno: { status: 'process', label: 'En diseño' },
   en_produccion: { status: 'process', label: 'En producción' },
   lista: { status: 'ready', label: 'Lista para entrega' },
   entregada: { status: 'neutral', label: 'Entregada' },
