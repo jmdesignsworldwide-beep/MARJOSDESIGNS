@@ -29,6 +29,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type OrderStage =
   | 'recibida'
+  | 'en_diseno'
   | 'en_produccion'
   | 'lista'
   | 'entregada'
@@ -124,7 +125,7 @@ function toSummary(row: OrderRow, today: Date): OrderSummary {
   }
 }
 
-const ACTIVE_STAGES = ['recibida', 'en_produccion', 'lista']
+const ACTIVE_STAGES = ['recibida', 'en_diseno', 'en_produccion', 'lista']
 
 /**
  * Managerial dashboard data (super_admin only — the page guards the role).
@@ -174,7 +175,9 @@ export async function getDashboardData(): Promise<DashboardData> {
       orders,
     }))
 
-  const inProduction = rows.filter((r) => r.stage === 'en_produccion').length
+  const inProduction = rows.filter(
+    (r) => r.stage === 'en_diseno' || r.stage === 'en_produccion',
+  ).length
   const receivable = rows.reduce((sum, r) => sum + r.balance, 0)
 
   // Month pulse (support block). Best-effort; missing columns just read 0.
