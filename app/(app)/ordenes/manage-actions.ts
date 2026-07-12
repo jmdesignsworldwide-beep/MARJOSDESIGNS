@@ -5,6 +5,7 @@ import { requireRole } from '@/lib/auth/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/auth/audit'
+import { recordCashMovement } from '@/lib/caja/movements'
 import { netPaid, ATTACHMENTS_BUCKET } from '@/lib/ordenes/finance'
 import {
   registerPaymentSchema,
@@ -58,17 +59,40 @@ export async function registerPayment(_prev: ManageState, formData: FormData): P
     if (dup && dup.length > 0) return { error: 'Ya existe un pago con esa referencia en esta orden.' }
   }
 
-  const { error } = await supabase.from('payments').insert({
-    order_id: input.orderId,
+  const { data: inserted, error } = await supabase
+    .from('payments')
+    .insert({
+      order_id: input.orderId,
+      amount: input.amount,
+      method: input.method,
+      reference: input.reference || null,
+      kind: 'pago',
+      created_by: admin.id,
+    })
+    .select('id')
+    .single()
+  if (error || !inserted) return { error: 'No se pudo registrar el pago.' }
+
+  const paid = await syncAmountPaid(input.orderId)
+
+  // Cero recaptura: this payment lands in today's open caja automatically.
+  const { data: ord } = await supabase
+    .from('orders')
+    .select('number, client_name')
+    .eq('id', input.orderId)
+    .maybeSingle()
+  await recordCashMovement({
+    source: 'order_payment',
     amount: input.amount,
     method: input.method,
     reference: input.reference || null,
-    kind: 'pago',
-    created_by: admin.id,
+    concept: ord?.number ? `Pago orden #${String(ord.number).padStart(4, '0')}` : 'Pago de orden',
+    clientName: ord?.client_name ?? null,
+    orderId: input.orderId,
+    paymentId: inserted.id,
+    createdBy: admin.id,
   })
-  if (error) return { error: 'No se pudo registrar el pago.' }
 
-  const paid = await syncAmountPaid(input.orderId)
   await logAudit({
     actorId: admin.id,
     action: 'payment.create',
@@ -77,6 +101,7 @@ export async function registerPayment(_prev: ManageState, formData: FormData): P
     details: { amount: input.amount, method: input.method, totalPaid: paid },
   })
   revalidateOrder(input.orderId)
+  revalidatePath('/caja')
   return { ok: true }
 }
 
@@ -92,17 +117,40 @@ export async function registerReverso(_prev: ManageState, formData: FormData): P
   const input = parsed.data
   const supabase = createSupabaseServerClient()
 
-  const { error } = await supabase.from('payments').insert({
-    order_id: input.orderId,
-    amount: input.amount,
-    method: 'efectivo',
-    kind: 'reverso',
-    note: input.reason,
-    created_by: admin.id,
-  })
-  if (error) return { error: 'No se pudo registrar la corrección.' }
+  const { data: inserted, error } = await supabase
+    .from('payments')
+    .insert({
+      order_id: input.orderId,
+      amount: input.amount,
+      method: 'efectivo',
+      kind: 'reverso',
+      note: input.reason,
+      created_by: admin.id,
+    })
+    .select('id')
+    .single()
+  if (error || !inserted) return { error: 'No se pudo registrar la corrección.' }
 
   const paid = await syncAmountPaid(input.orderId)
+
+  // Mirror the correction out of today's open caja (audited salida).
+  const { data: ord } = await supabase
+    .from('orders')
+    .select('number, client_name')
+    .eq('id', input.orderId)
+    .maybeSingle()
+  await recordCashMovement({
+    direction: 'salida',
+    source: 'order_reverso',
+    amount: input.amount,
+    method: 'efectivo',
+    concept: ord?.number ? `Corrección orden #${String(ord.number).padStart(4, '0')}` : 'Corrección de pago',
+    clientName: ord?.client_name ?? null,
+    orderId: input.orderId,
+    paymentId: inserted.id,
+    createdBy: admin.id,
+  })
+
   await logAudit({
     actorId: admin.id,
     action: 'payment.reverso',
@@ -111,6 +159,7 @@ export async function registerReverso(_prev: ManageState, formData: FormData): P
     details: { amount: input.amount, reason: input.reason, totalPaid: paid },
   })
   revalidateOrder(input.orderId)
+  revalidatePath('/caja')
   return { ok: true }
 }
 
