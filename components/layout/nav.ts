@@ -4,13 +4,13 @@ import {
   Calculator,
   Users,
   Package,
-  BarChart3,
   Settings,
   CalendarDays,
   UserCog,
   Wallet,
   ShoppingCart,
   ReceiptText,
+  LineChart,
   type LucideIcon,
 } from 'lucide-react'
 import type { UserRole } from '@/lib/auth/guards'
@@ -35,11 +35,11 @@ export const navItems: NavItem[] = [
   { label: 'Caja', icon: Wallet, href: '/caja', roles: ['super_admin'] },
   { label: 'Venta rápida', icon: ShoppingCart, href: '/pos', roles: ['super_admin'] },
   { label: 'Gastos', icon: ReceiptText, href: '/gastos', roles: ['super_admin'] },
+  { label: 'Finanzas', icon: LineChart, href: '/finanzas', roles: ['super_admin'] },
   { label: 'Órdenes', icon: ClipboardList, href: '/ordenes', roles: ['super_admin'], placeholder: true },
   { label: 'Cotizador', icon: Calculator, href: '/cotizador', roles: ['super_admin'], placeholder: true },
   { label: 'Clientes', icon: Users, href: '/clientes', roles: ['super_admin'], placeholder: true },
   { label: 'Inventario', icon: Package, href: '/inventario', roles: ['super_admin'], placeholder: true },
-  { label: 'Reportes', icon: BarChart3, href: '/reportes', roles: ['super_admin'], placeholder: true },
   { label: 'Usuarios', icon: UserCog, href: '/usuarios', roles: ['super_admin'] },
   { label: 'Ajustes', icon: Settings, href: '/ajustes', roles: ['super_admin'], placeholder: true },
 ]
