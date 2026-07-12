@@ -3,12 +3,17 @@
  * authoritative server recalculation). This is the money math: it must be
  * exact. All rounding is explicit and documented so manual checks match.
  *
- * Rounding contract:
- *  - Each line subtotal is rounded to 2 decimals.
- *  - Quote subtotal = sum of the already-rounded line subtotals.
- *  - Discount is rounded to 2 decimals and clamped to [0, subtotal].
- *  - Total = subtotal − discount.
- *  - Deposit (50%) = total × 0.5, rounded to 2 decimals.
+ * MONEY ROUNDING (system-wide rule — must be identical in every module:
+ * cotizador, órdenes, pagos, caja, reportes):
+ *  - Every money amount is rounded to the WHOLE peso (no cents).
+ *  - Area conversions (in² → ft²) keep FULL precision; rounding happens ONLY
+ *    at the final price of each line, never in intermediate steps.
+ *  - Each line subtotal is rounded to a whole peso.
+ *  - Subtotal = sum of the already-rounded (whole-peso) line subtotals.
+ *  - Discount is rounded to a whole peso and clamped to [0, subtotal].
+ *  - Total = subtotal − discount. Deposit (50%) = round(total × 0.5).
+ * Because every amount is a whole peso, totals never mismatch by a cent
+ * between the item view, the order, the cash box and the report.
  */
 
 export const SQIN_PER_SQFT = 144 // 12in × 12in
@@ -16,10 +21,10 @@ export const SQIN_PER_SQFT = 144 // 12in × 12in
 export type CalcType = 'area' | 'quantity'
 export type DiscountType = 'none' | 'amount' | 'percent'
 
-/** Round to 2 decimals, guarding against binary-float artifacts. */
-export function round2(n: number): number {
+/** Round a MONEY amount to the whole peso (system-wide rule). */
+export function roundMoney(n: number): number {
   if (!Number.isFinite(n)) return 0
-  return Math.round((n + Number.EPSILON) * 100) / 100
+  return Math.round(n)
 }
 
 /** Round to 4 decimals (for square-feet display precision). */
@@ -53,12 +58,12 @@ export function computeLine(input: LineInput): LineResult {
     const areaIn2 = w * h
     const sqft = areaIn2 / SQIN_PER_SQFT
     // Multiply before dividing to keep precision: (w*h*price)/144
-    const subtotal = round2((areaIn2 * price) / SQIN_PER_SQFT)
+    const subtotal = roundMoney((areaIn2 * price) / SQIN_PER_SQFT)
     return { areaIn2, sqft: round4(sqft), subtotal }
   }
 
   const qty = Math.max(0, Number(input.quantity) || 0)
-  return { areaIn2: null, sqft: null, subtotal: round2(qty * price) }
+  return { areaIn2: null, sqft: null, subtotal: roundMoney(qty * price) }
 }
 
 export interface QuoteTotals {
@@ -73,24 +78,26 @@ export function computeTotals(
   lineSubtotals: number[],
   discount: { type: DiscountType; value: number } = { type: 'none', value: 0 },
 ): QuoteTotals {
-  const subtotal = round2(lineSubtotals.reduce((s, x) => s + (Number(x) || 0), 0))
+  const subtotal = roundMoney(lineSubtotals.reduce((s, x) => s + (Number(x) || 0), 0))
 
   let discountAmount = 0
   if (discount.type === 'amount') {
-    discountAmount = round2(Math.max(0, Number(discount.value) || 0))
+    discountAmount = roundMoney(Math.max(0, Number(discount.value) || 0))
   } else if (discount.type === 'percent') {
     const pct = Math.min(100, Math.max(0, Number(discount.value) || 0))
-    discountAmount = round2((subtotal * pct) / 100)
+    discountAmount = roundMoney((subtotal * pct) / 100)
   }
   discountAmount = Math.min(discountAmount, subtotal)
 
-  const total = round2(subtotal - discountAmount)
-  const deposit = round2(total * 0.5)
+  const total = roundMoney(subtotal - discountAmount)
+  const deposit = roundMoney(total * 0.5)
   return { subtotal, discountAmount, total, deposit }
 }
 
-/** Human-friendly square-feet string: "6" or "4.17". */
+/** Human-friendly square-feet string: "6" or "4.17" (sqft is NOT money —
+ *  it keeps 2 decimals for display; the price it produces is whole-peso). */
 export function formatSqft(sqft: number | null): string {
   if (sqft === null) return ''
-  return Number.isInteger(sqft) ? String(sqft) : String(round2(sqft))
+  const twoDec = Math.round((sqft + Number.EPSILON) * 100) / 100
+  return Number.isInteger(twoDec) ? String(twoDec) : String(twoDec)
 }
