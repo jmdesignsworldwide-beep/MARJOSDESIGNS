@@ -8,7 +8,7 @@ import type { OrderStage, OrderSummary } from '@/lib/dashboard/data'
 import { riseItem } from '@/components/motion/variants'
 
 const stageBadge: Record<OrderStage, { status: 'process' | 'ready' | 'neutral'; label: string }> = {
-  cotizacion: { status: 'neutral', label: 'Cotización' },
+  recibida: { status: 'process', label: 'Recibida' },
   en_produccion: { status: 'process', label: 'En producción' },
   lista: { status: 'ready', label: 'Lista para entrega' },
   entregada: { status: 'neutral', label: 'Entregada' },

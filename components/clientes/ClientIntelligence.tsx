@@ -1,5 +1,7 @@
+import Link from 'next/link'
 import { Trophy, Repeat, BellRing } from 'lucide-react'
 import { Card, CardHeader } from '@/components/ui/Card'
+import { WhatsAppButton } from './WhatsAppButton'
 import type { ClientIntelligence as Intel } from '@/lib/clients/data'
 
 /**
@@ -58,11 +60,19 @@ export function ClientIntelligence({ intel }: { intel: Intel }) {
               text="Los clientes dormidos aparecerán aquí, listos para escribirles por WhatsApp."
             />
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {intel.reactivation.map((r) => (
-                <li key={r.id} className="flex justify-between text-sm">
-                  <span>{r.name}</span>
-                  <span className="text-status-overdue">{r.daysSince} días</span>
+                <li key={r.id} className="flex items-center justify-between gap-2 text-sm">
+                  <Link href={`/clientes/${r.id}`} className="min-w-0 truncate hover:text-gold-brand">
+                    {r.name}
+                    <span className="ml-1.5 text-xs text-status-overdue">{r.daysSince}d</span>
+                  </Link>
+                  <WhatsAppButton
+                    phone={r.whatsapp}
+                    size="sm"
+                    label="Escribir"
+                    message={`Hola ${r.name.split(' ')[0]} 👋, te extrañamos en Marjos Designs.`}
+                  />
                 </li>
               ))}
             </ul>

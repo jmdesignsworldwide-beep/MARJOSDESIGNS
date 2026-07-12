@@ -135,8 +135,8 @@ export async function getClientStats(clientId: string): Promise<ClientStats> {
 
 export interface ClientIntelligence {
   ordersReady: boolean
-  topBySpend: { id: string; name: string; value: number }[]
-  topByOrders: { id: string; name: string; value: number }[]
+  topBySpend: { id: string; name: string; value: string }[]
+  topByOrders: { id: string; name: string; value: string }[]
   reactivation: { id: string; name: string; whatsapp: string | null; daysSince: number }[]
 }
 
@@ -151,7 +151,53 @@ export async function getClientIntelligence(): Promise<ClientIntelligence> {
   if (probe.error) {
     return { ordersReady: false, topBySpend: [], topByOrders: [], reactivation: [] }
   }
-  // Real aggregation lands with the Órdenes tanda; until there is data the
-  // lists stay empty (honest) even though the table now exists.
-  return { ordersReady: true, topBySpend: [], topByOrders: [], reactivation: [] }
+
+  const [{ data: orders }, { data: clients }] = await Promise.all([
+    supabase.from('orders').select('client_id, total, created_at, stage'),
+    supabase.from('clients').select('id, name, whatsapp, status').eq('status', 'activo'),
+  ])
+
+  const byClient = new Map<
+    string,
+    { spend: number; count: number; last: number }
+  >()
+  for (const o of orders ?? []) {
+    const r = o as { client_id: string | null; total: number | null; created_at: string; stage: string }
+    if (!r.client_id || r.stage === 'cancelada') continue
+    const cur = byClient.get(r.client_id) ?? { spend: 0, count: 0, last: 0 }
+    cur.spend += Number(r.total ?? 0)
+    cur.count += 1
+    cur.last = Math.max(cur.last, new Date(r.created_at).getTime())
+    byClient.set(r.client_id, cur)
+  }
+
+  const nameOf = new Map((clients ?? []).map((c) => [c.id as string, c as { name: string; whatsapp: string | null }]))
+  const formatMoney = (n: number) =>
+    new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(n)
+
+  const entries = Array.from(byClient.entries()).filter(([id]) => nameOf.has(id))
+
+  const topBySpend = entries
+    .sort((a, b) => b[1].spend - a[1].spend)
+    .slice(0, 5)
+    .map(([id, v]) => ({ id, name: nameOf.get(id)!.name, value: `RD$${formatMoney(v.spend)}` }))
+
+  const topByOrders = entries
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5)
+    .map(([id, v]) => ({ id, name: nameOf.get(id)!.name, value: `${v.count} órden${v.count === 1 ? '' : 'es'}` }))
+
+  const now = Date.now()
+  const reactivation = entries
+    .map(([id, v]) => ({
+      id,
+      name: nameOf.get(id)!.name,
+      whatsapp: nameOf.get(id)!.whatsapp,
+      daysSince: Math.floor((now - v.last) / 86_400_000),
+    }))
+    .filter((r) => r.daysSince >= 30)
+    .sort((a, b) => b.daysSince - a.daysSince)
+    .slice(0, 8)
+
+  return { ordersReady: true, topBySpend, topByOrders, reactivation }
 }

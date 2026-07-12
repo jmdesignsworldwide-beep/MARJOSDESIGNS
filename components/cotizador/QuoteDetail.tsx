@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Modal } from '@/components/ui/Modal'
 import { formatSqft } from '@/lib/cotizador/calc'
 import { quoteCode } from '@/lib/cotizador/format'
+import { convertQuoteToOrder } from '@/app/(app)/ordenes/actions'
 import type { Quote, QuoteLine } from '@/lib/cotizador/data'
 
 function lineBreakdown(l: QuoteLine): string {
@@ -39,9 +40,9 @@ export function QuoteDetail({ quote, lines }: { quote: Quote; lines: QuoteLine[]
             <Printer className="h-4 w-4" />
             Imprimir / PDF
           </Button>
-          <Button onClick={() => setConverting(true)}>
+          <Button onClick={() => setConverting(true)} disabled={quote.status === 'convertida'}>
             <PackageCheck className="h-4 w-4" />
-            Convertir en orden
+            {quote.status === 'convertida' ? 'Ya convertida' : 'Convertir en orden'}
           </Button>
         </div>
       </div>
@@ -129,16 +130,20 @@ export function QuoteDetail({ quote, lines }: { quote: Quote; lines: QuoteLine[]
         )}
       </Card>
 
-      <Modal open={converting} onClose={() => setConverting(false)} title="Convertir en orden" description="Módulo Órdenes — próxima tanda (5)">
+      <Modal open={converting} onClose={() => setConverting(false)} title="Convertir en orden" description="Se crea una orden de trabajo con todo listo.">
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Esta cotización se convertirá en una <span className="font-medium text-foreground">orden de trabajo</span> con
-            un clic — cliente, productos, total y 50% inicial ya listos — en cuanto se construya el módulo{' '}
-            <span className="font-medium text-foreground">Órdenes</span>. El botón ya está enganchado.
+            Se creará una <span className="font-medium text-foreground">orden de trabajo</span> arrastrando
+            cliente, ítems, precios, descuento, total y 50% inicial — sin recapturar nada. Luego podrás
+            asignar empleada y fecha de entrega.
           </p>
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={() => setConverting(false)}>Entendido</Button>
-          </div>
+          <form action={convertQuoteToOrder.bind(null, quote.id)} className="flex justify-end gap-3">
+            <Button type="button" variant="ghost" onClick={() => setConverting(false)}>Cancelar</Button>
+            <Button type="submit">
+              <PackageCheck className="h-4 w-4" />
+              Crear orden
+            </Button>
+          </form>
         </div>
       </Modal>
     </div>
