@@ -1,17 +1,11 @@
-import { ClipboardList } from 'lucide-react'
 import { requireRole } from '@/lib/auth/guards'
-import { ModulePlaceholder } from '@/components/ModulePlaceholder'
+import { listOrders, listAssignableUsers } from '@/lib/ordenes/data'
+import { OrdersList } from '@/components/ordenes/OrdersList'
 
 export const dynamic = 'force-dynamic'
 
 export default async function OrdenesPage() {
   await requireRole('super_admin')
-  return (
-    <ModulePlaceholder
-      title="Órdenes"
-      description="Todas las órdenes del taller."
-      icon={ClipboardList}
-      scope="admin"
-    />
-  )
+  const [orders, employees] = await Promise.all([listOrders(), listAssignableUsers()])
+  return <OrdersList orders={orders} employees={employees} />
 }

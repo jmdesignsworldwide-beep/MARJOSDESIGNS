@@ -28,7 +28,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
  */
 
 export type OrderStage =
-  | 'cotizacion'
+  | 'recibida'
   | 'en_produccion'
   | 'lista'
   | 'entregada'
@@ -124,7 +124,7 @@ function toSummary(row: OrderRow, today: Date): OrderSummary {
   }
 }
 
-const ACTIVE_STAGES = ['cotizacion', 'en_produccion', 'lista']
+const ACTIVE_STAGES = ['recibida', 'en_produccion', 'lista']
 
 /**
  * Managerial dashboard data (super_admin only — the page guards the role).
