@@ -8,7 +8,6 @@ import {
   Trash2,
   Tag,
   Percent,
-  UserPlus,
   PackagePlus,
   Save,
 } from 'lucide-react'
@@ -20,7 +19,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Field'
 import { useToast } from '@/components/ui/Toast'
 import { ProductForm } from './ProductForm'
-import { ClientForm } from '@/components/clientes/ClientForm'
+import { ClientPicker } from '@/components/clientes/ClientPicker'
 import { InchHelper } from './InchHelper'
 import {
   computeLine,
@@ -75,7 +74,6 @@ export function Calculator({
   const [clientId, setClientId] = useState<string>('')
   const [notes, setNotes] = useState('')
   const [newProduct, setNewProduct] = useState(false)
-  const [newClient, setNewClient] = useState(false)
   const [saving, setSaving] = useState(false)
 
   function addLine(productId: string) {
@@ -231,24 +229,9 @@ export function Calculator({
           <Card>
             <h2 className="mb-4 text-base font-semibold">Resumen</h2>
 
-            {/* Client */}
-            <div className="mb-4 space-y-2">
-              <label className="text-sm font-medium">Cliente</label>
-              <div className="flex gap-2">
-                <select
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                  className="h-11 flex-1 appearance-none rounded-xl border border-border bg-input/5 px-3.5 text-sm outline-none focus:border-gold-mid focus:ring-2 focus:ring-gold-mid/30"
-                >
-                  <option value="">Sin cliente (general)</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-                <Button variant="secondary" size="sm" onClick={() => setNewClient(true)} className="shrink-0">
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              </div>
+            {/* Client — el MISMO selector en todo el sistema */}
+            <div className="mb-4">
+              <ClientPicker clients={clients} value={clientId} onChange={setClientId} />
             </div>
 
             {/* Totals */}
@@ -327,16 +310,6 @@ export function Calculator({
       {/* Modals */}
       <Modal open={newProduct} onClose={() => setNewProduct(false)} title="Nuevo producto" description="Se guarda en tu lista de precios.">
         <ProductForm onDone={() => { setNewProduct(false); router.refresh() }} />
-      </Modal>
-      <Modal open={newClient} onClose={() => setNewClient(false)} title="Nuevo cliente">
-        <ClientForm
-          mode="create"
-          onDone={(createdId) => {
-            setNewClient(false)
-            if (createdId) setClientId(createdId)
-            router.refresh()
-          }}
-        />
       </Modal>
     </div>
   )

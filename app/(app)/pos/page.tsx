@@ -3,6 +3,7 @@ import { History, Wallet } from 'lucide-react'
 import { requireRole } from '@/lib/auth/guards'
 import { listProducts } from '@/lib/cotizador/data'
 import { getOpenRegister } from '@/lib/caja/data'
+import { listClients } from '@/lib/clients/data'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { PosTerminal } from '@/components/pos/PosTerminal'
@@ -11,7 +12,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function PosPage() {
   await requireRole('super_admin')
-  const [products, register] = await Promise.all([listProducts(), getOpenRegister()])
+  const [products, register, clients] = await Promise.all([listProducts(), getOpenRegister(), listClients()])
+  const clientOptions = clients.filter((c) => c.status === 'activo').map((c) => ({ id: c.id, name: c.name }))
 
   return (
     <div>
@@ -46,7 +48,7 @@ export default async function PosPage() {
           </Link>
         </Card>
       ) : (
-        <PosTerminal products={products} />
+        <PosTerminal products={products} clients={clientOptions} />
       )}
     </div>
   )

@@ -6,6 +6,7 @@ import { roundMoney, toInches, type DiscountType } from '@/lib/cotizador/calc'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Field'
+import { ClientPicker } from '@/components/clientes/ClientPicker'
 import { useToast } from '@/components/ui/Toast'
 import { createSale, type PosState } from '@/lib/pos/actions'
 import { methodLabel } from '@/lib/caja/format'
@@ -19,6 +20,7 @@ export function PaymentModal({
   onClose,
   total,
   cart,
+  clients,
   discountType,
   discountValue,
   onPaid,
@@ -27,6 +29,7 @@ export function PaymentModal({
   onClose: () => void
   total: number
   cart: CartLine[]
+  clients: { id: string; name: string }[]
   discountType: DiscountType
   discountValue: number
   onPaid: (state: PosState, method: string, clientName: string) => void
@@ -34,7 +37,7 @@ export function PaymentModal({
   const [method, setMethod] = useState<CashMethod>('efectivo')
   const [cashReceived, setCashReceived] = useState('')
   const [reference, setReference] = useState('')
-  const [clientName, setClientName] = useState('')
+  const [clientId, setClientId] = useState('')
   const [pending, startTransition] = useTransition()
   const { toast } = useToast()
 
@@ -43,9 +46,11 @@ export function PaymentModal({
       setMethod('efectivo')
       setCashReceived('')
       setReference('')
-      setClientName('')
+      setClientId('')
     }
   }, [open])
+
+  const clientName = clients.find((c) => c.id === clientId)?.name ?? ''
 
   const received = Number(cashReceived) || 0
   const change = method === 'efectivo' ? roundMoney(received - total) : 0
@@ -68,7 +73,7 @@ export function PaymentModal({
         method,
         reference: reference || undefined,
         cashReceived: method === 'efectivo' ? received : undefined,
-        clientName: clientName || undefined,
+        clientId: clientId || undefined,
       })
       if (state.error) {
         toast({ title: state.error, variant: 'error' })
@@ -139,7 +144,7 @@ export function PaymentModal({
           />
         )}
 
-        <Input id="pos-client" label="Cliente (opcional)" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nombre del cliente" />
+        <ClientPicker clients={clients} value={clientId} onChange={setClientId} label="Cliente (opcional)" />
 
         <div className="flex justify-end gap-3 pt-1">
           <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>

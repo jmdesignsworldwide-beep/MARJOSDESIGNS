@@ -34,6 +34,16 @@ export async function createSale(payload: unknown): Promise<PosState> {
   const { data: reg } = await supabase.from('cash_registers').select('id').eq('status', 'abierta').maybeSingle()
   if (!reg) return { error: 'Abre la caja antes de registrar una venta.' }
 
+  // Resolve the client name from the chosen REGISTERED client (authoritative).
+  let clientId: string | null = null
+  let clientName: string | null = null
+  if (input.clientId) {
+    const { data: client } = await supabase.from('clients').select('id, name').eq('id', input.clientId).maybeSingle()
+    if (!client) return { error: 'El cliente seleccionado no existe.' }
+    clientId = client.id as string
+    clientName = client.name as string
+  }
+
   // Server-authoritative money (whole peso). Area lines recompute from the
   // dimensions (in inches) with the SAME engine as the Cotizador — the client
   // subtotal is never trusted.
@@ -78,7 +88,7 @@ export async function createSale(payload: unknown): Promise<PosState> {
     .from('pos_sales')
     .insert({
       register_id: reg.id,
-      client_name: input.clientName || null,
+      client_name: clientName,
       subtotal: totals.subtotal,
       discount_type: input.discountType,
       discount_value: input.discountType === 'none' ? 0 : input.discountValue,
@@ -118,7 +128,8 @@ export async function createSale(payload: unknown): Promise<PosState> {
       method: input.method,
       reference: input.reference || null,
       concept: `Venta rápida POS-${String(sale.number).padStart(4, '0')}`,
-      clientName: input.clientName || null,
+      clientName,
+      clientId,
       posSaleId: sale.id,
       createdBy: admin.id,
     },

@@ -11,6 +11,7 @@ export interface MovementInput {
   reference?: string | null
   concept?: string | null
   clientName?: string | null
+  clientId?: string | null
   orderId?: string | null
   paymentId?: number | null
   posSaleId?: string | null
@@ -54,6 +55,7 @@ export async function recordCashMovement(
     reference: input.reference || null,
     concept: input.concept || null,
     client_name: input.clientName || null,
+    client_id: input.clientId || null,
     order_id: input.orderId || null,
     payment_id: input.paymentId ?? null,
     pos_sale_id: input.posSaleId || null,

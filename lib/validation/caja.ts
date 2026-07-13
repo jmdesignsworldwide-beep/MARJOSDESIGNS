@@ -23,6 +23,8 @@ export const manualMovementSchema = z.object({
   amount: money.refine((n) => n > 0, 'El monto debe ser mayor que 0'),
   method: cashMethod,
   concept: z.string().trim().min(2, 'Describe el concepto').max(160),
-  clientName: z.string().trim().max(120).optional().or(z.literal('')),
+  // A REGISTERED client (or none). No loose free text — the name is resolved
+  // server-side from this id.
+  clientId: z.string().uuid().optional().or(z.literal('')),
   reference: z.string().trim().max(120).optional().or(z.literal('')),
 })
