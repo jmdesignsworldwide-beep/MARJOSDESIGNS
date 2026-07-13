@@ -4,7 +4,7 @@ import { cache } from 'react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type UserRole = 'super_admin' | 'empleado'
-export type UserStatus = 'activo' | 'inactivo'
+export type UserStatus = 'activo' | 'inactivo' | 'archivado'
 
 export interface Profile {
   id: string

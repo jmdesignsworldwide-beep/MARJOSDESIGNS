@@ -2,14 +2,85 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/auth/guards'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { logAudit } from '@/lib/auth/audit'
 import { createUserSchema, updateUserSchema, userStatus } from '@/lib/validation/auth'
+import { deleteEmployeeSchema } from '@/lib/validation/security'
+import { requirePin } from '@/lib/security/pin'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export interface ActionState {
   error?: string
   fieldErrors?: Record<string, string>
   success?: string
+}
+
+export interface DeleteEmployeeState {
+  error?: string
+  success?: string
+  mode?: 'deleted' | 'archived'
+}
+
+/**
+ * Does this employee have REAL activity? Checks the authoritative tables:
+ * orders worked/created, POS sales made, payroll payments received, and order
+ * stages advanced. FAIL-SAFE: an errored check counts as "has history" so we
+ * never hard-delete on doubt (archiving is always reversible; deletion isn't).
+ */
+async function hasRealHistory(supabase: SupabaseClient, id: string): Promise<boolean> {
+  const results = await Promise.all([
+    supabase.from('orders').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${id},created_by.eq.${id}`),
+    supabase.from('pos_sales').select('id', { count: 'exact', head: true }).eq('sold_by', id),
+    supabase.from('payroll_payments').select('id', { count: 'exact', head: true }).eq('profile_id', id),
+    supabase.from('order_stage_history').select('id', { count: 'exact', head: true }).eq('changed_by', id),
+  ])
+  return results.some((r) => r.error != null || (r.count ?? 0) > 0)
+}
+
+/**
+ * Smart delete (super_admin + PIN). No real history → hard-deleted. Has history
+ * → ARCHIVED (hidden, but the inviolable trail in orders/nómina is preserved).
+ * Never deletes yourself or the last active admin.
+ */
+export async function deleteEmployee(_prev: DeleteEmployeeState, formData: FormData): Promise<DeleteEmployeeState> {
+  const admin = await requireRole('super_admin')
+  const parsed = deleteEmployeeSchema.safeParse({ id: formData.get('id'), pin: formData.get('pin') })
+  if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' }
+  const { id, pin } = parsed.data
+
+  if (id === admin.id) return { error: 'No puedes borrarte a ti misma.' }
+
+  const supabase = createSupabaseServerClient()
+  const { data: target } = await supabase.from('profiles').select('id, full_name, role, status').eq('id', id).maybeSingle()
+  if (!target) return { error: 'Empleado no encontrado.' }
+
+  // Never leave the system without an active admin.
+  if (target.role === 'super_admin') {
+    const { count } = await supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'super_admin').eq('status', 'activo')
+    if ((count ?? 0) <= 1) return { error: 'No puedes borrar al único Super Admin activo.' }
+  }
+
+  // PIN gate — destructive action.
+  const gate = await requirePin(pin)
+  if (!gate.ok) return { error: gate.error }
+
+  if (await hasRealHistory(supabase, id)) {
+    if (target.status === 'archivado') return { error: 'Ese empleado ya está archivado.' }
+    const { error } = await supabase.from('profiles').update({ status: 'archivado' }).eq('id', id)
+    if (error) return { error: 'No se pudo archivar el empleado.' }
+    await logAudit({ actorId: admin.id, action: 'user.archive', targetType: 'profile', targetId: id, details: { name: target.full_name, reason: 'has_history' } })
+    revalidatePath('/usuarios')
+    return { mode: 'archived', success: `${target.full_name} tiene historial real, así que se archivó (no se borró) para conservar su registro.` }
+  }
+
+  // No history → hard delete (auth user; the profile cascades).
+  const adminClient = createSupabaseAdminClient()
+  const { error } = await adminClient.auth.admin.deleteUser(id)
+  if (error) return { error: 'No se pudo borrar el empleado.' }
+  await logAudit({ actorId: admin.id, action: 'user.delete', targetType: 'profile', targetId: id, details: { name: target.full_name } })
+  revalidatePath('/usuarios')
+  return { mode: 'deleted', success: `${target.full_name} se borró por completo (no tenía historial).` }
 }
 
 function emptyToNull(v?: string) {
