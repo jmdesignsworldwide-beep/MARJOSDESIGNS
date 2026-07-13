@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/lib/auth/guards'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { logAudit } from '@/lib/auth/audit'
-import { roundMoney, computeTotals } from '@/lib/cotizador/calc'
+import { roundMoney, computeLine, computeTotals } from '@/lib/cotizador/calc'
 import { createSaleSchema, voidSaleSchema } from '@/lib/validation/pos'
 import { recordCashMovement } from '@/lib/caja/movements'
 
@@ -34,11 +34,19 @@ export async function createSale(payload: unknown): Promise<PosState> {
   const { data: reg } = await supabase.from('cash_registers').select('id').eq('status', 'abierta').maybeSingle()
   if (!reg) return { error: 'Abre la caja antes de registrar una venta.' }
 
-  // Server-authoritative money (whole peso).
-  const lines = input.items.map((it) => ({
-    ...it,
-    subtotal: roundMoney(it.quantity * it.unitPrice),
-  }))
+  // Server-authoritative money (whole peso). Area lines recompute from the
+  // dimensions (in inches) with the SAME engine as the Cotizador — the client
+  // subtotal is never trusted.
+  const lines = input.items.map((it) => {
+    const r = computeLine({
+      calcType: it.calcType,
+      unitPrice: it.unitPrice,
+      widthIn: it.widthIn,
+      heightIn: it.heightIn,
+      quantity: it.quantity,
+    })
+    return { ...it, subtotal: r.subtotal, sqft: r.sqft }
+  })
   const totals = computeTotals(
     lines.map((l) => l.subtotal),
     { type: input.discountType, value: input.discountValue },
@@ -90,8 +98,12 @@ export async function createSale(payload: unknown): Promise<PosState> {
     sale_id: sale.id,
     product_id: l.productId ?? null,
     description: l.description,
-    quantity: l.quantity,
+    calc_type: l.calcType,
+    quantity: l.calcType === 'area' ? 1 : l.quantity,
     unit_price: roundMoney(l.unitPrice),
+    width_in: l.calcType === 'area' ? l.widthIn ?? null : null,
+    height_in: l.calcType === 'area' ? l.heightIn ?? null : null,
+    sqft: l.calcType === 'area' ? l.sqft : null,
     subtotal: l.subtotal,
     position: i,
   }))

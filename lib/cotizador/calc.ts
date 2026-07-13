@@ -17,9 +17,19 @@
  */
 
 export const SQIN_PER_SQFT = 144 // 12in × 12in
+export const INCHES_PER_FOOT = 12
 
 export type CalcType = 'area' | 'quantity'
 export type DiscountType = 'none' | 'amount' | 'percent'
+/** Unit used to CAPTURE a dimension. Storage is always inches (pulg default). */
+export type LengthUnit = 'in' | 'ft'
+
+/** Convert a captured length to inches. Feet is a convenience; inches is the
+ *  canonical stored unit (144 in² = 1 ft²). */
+export function toInches(value: number, unit: LengthUnit): number {
+  const v = Math.max(0, Number(value) || 0)
+  return unit === 'ft' ? v * INCHES_PER_FOOT : v
+}
 
 /** Round a MONEY amount to the whole peso (system-wide rule). */
 export function roundMoney(n: number): number {

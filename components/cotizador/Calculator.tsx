@@ -26,7 +26,9 @@ import {
   computeLine,
   computeTotals,
   formatSqft,
+  toInches,
   type CalcType,
+  type LengthUnit,
 } from '@/lib/cotizador/calc'
 import { saveQuote } from '@/app/(app)/cotizador/actions'
 import type { Product } from '@/lib/cotizador/data'
@@ -37,8 +39,10 @@ interface LineState {
   description: string
   calcType: CalcType
   unitLabel: string
+  /** Width/height as typed, in the line's chosen unit (converted to inches). */
   widthIn: string
   heightIn: string
+  unit: LengthUnit
   quantity: string
   unitPrice: string
 }
@@ -87,6 +91,7 @@ export function Calculator({
         unitLabel: p.unit_label,
         widthIn: '',
         heightIn: '',
+        unit: 'in',
         quantity: '',
         unitPrice: String(p.base_price),
       },
@@ -106,8 +111,8 @@ export function Calculator({
         computeLine({
           calcType: l.calcType,
           unitPrice: num(l.unitPrice),
-          widthIn: num(l.widthIn),
-          heightIn: num(l.heightIn),
+          widthIn: toInches(num(l.widthIn), l.unit),
+          heightIn: toInches(num(l.heightIn), l.unit),
           quantity: num(l.quantity),
         }),
       ),
@@ -144,8 +149,8 @@ export function Calculator({
         productId: l.productId,
         description: l.description,
         calcType: l.calcType,
-        widthIn: num(l.widthIn),
-        heightIn: num(l.heightIn),
+        widthIn: toInches(num(l.widthIn), l.unit),
+        heightIn: toInches(num(l.heightIn), l.unit),
         quantity: num(l.quantity),
         unitPrice: num(l.unitPrice),
       })),
@@ -358,8 +363,9 @@ function LineRow({
   onRemove: () => void
 }) {
   const isArea = line.calcType === 'area'
+  const unitWord = line.unit === 'ft' ? 'pies' : 'pulg'
   const breakdown = isArea
-    ? `${line.widthIn || 0} × ${line.heightIn || 0} pulg = ${formatSqft(result.sqft)} pie² × ${formatDOP(num(line.unitPrice))}`
+    ? `${line.widthIn || 0} × ${line.heightIn || 0} ${unitWord} = ${formatSqft(result.sqft)} pie² × ${formatDOP(num(line.unitPrice))}`
     : `${line.quantity || 0} × ${formatDOP(num(line.unitPrice))}`
 
   return (
@@ -388,11 +394,27 @@ function LineRow({
           </button>
         </div>
 
+        {isArea && (
+          <div className="mt-3 flex items-center gap-1">
+            <span className="mr-1 text-xs text-muted-foreground">Medidas en</span>
+            {(['in', 'ft'] as LengthUnit[]).map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => onChange({ unit: u })}
+                className={cn('rounded-md px-2 py-0.5 text-xs font-medium transition-colors', line.unit === u ? 'bg-gold-gradient-soft text-gold-brand' : 'text-muted-foreground hover:text-foreground')}
+              >
+                {u === 'in' ? 'pulgadas' : 'pies'}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {isArea ? (
             <>
-              <NumField label="Ancho (pulg)" value={line.widthIn} onChange={(v) => onChange({ widthIn: v })} />
-              <NumField label="Alto (pulg)" value={line.heightIn} onChange={(v) => onChange({ heightIn: v })} />
+              <NumField label={`Ancho (${unitWord})`} value={line.widthIn} onChange={(v) => onChange({ widthIn: v })} />
+              <NumField label={`Alto (${unitWord})`} value={line.heightIn} onChange={(v) => onChange({ heightIn: v })} />
             </>
           ) : (
             <NumField label="Cantidad" value={line.quantity} onChange={(v) => onChange({ quantity: v })} />

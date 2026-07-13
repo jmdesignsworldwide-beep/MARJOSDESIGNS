@@ -6,8 +6,12 @@ export interface PosSaleItem {
   id: number
   product_id: string | null
   description: string
+  calc_type: 'area' | 'quantity'
   quantity: number
   unit_price: number
+  width_in: number | null
+  height_in: number | null
+  sqft: number | null
   subtotal: number
   position: number
 }
@@ -86,7 +90,7 @@ export async function getSale(
   if (!sale) return null
   const { data: items } = await supabase
     .from('pos_sale_items')
-    .select('id, product_id, description, quantity, unit_price, subtotal, position')
+    .select('id, product_id, description, calc_type, quantity, unit_price, width_in, height_in, sqft, subtotal, position')
     .eq('sale_id', id)
     .order('position', { ascending: true })
   const [withName] = await attachSellerNames([{ ...(sale as PosSale), sold_by_name: null }])
