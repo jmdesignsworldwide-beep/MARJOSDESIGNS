@@ -25,6 +25,8 @@ export const quoteLineSchema = z
     heightIn: z.coerce.number().finite().min(0).max(100_000).optional(),
     quantity: z.coerce.number().finite().min(0).max(1_000_000).optional(),
     unitPrice: money,
+    // Optional supplier cost (for margin). Never trusted for the sell total.
+    unitCost: z.union([z.literal(''), money]).transform((v) => (v === '' ? null : v)).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.calcType === 'area') {

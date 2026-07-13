@@ -21,6 +21,7 @@ export interface QuoteLine {
   sqft: number | null
   quantity: number | null
   unit_price: number
+  unit_cost: number | null
   subtotal: number
   position: number
 }
@@ -88,7 +89,7 @@ export async function getQuote(
   const { data: lines } = await supabase
     .from('quote_lines')
     .select(
-      'id, product_id, description, calc_type, width_in, height_in, sqft, quantity, unit_price, subtotal, position',
+      'id, product_id, description, calc_type, width_in, height_in, sqft, quantity, unit_price, unit_cost, subtotal, position',
     )
     .eq('quote_id', id)
     .order('position', { ascending: true })

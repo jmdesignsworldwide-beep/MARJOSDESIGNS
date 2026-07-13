@@ -50,6 +50,7 @@ export async function saveQuote(payload: unknown): Promise<QuoteActionState> {
       sqft: r.sqft,
       quantity: l.calcType === 'quantity' ? l.quantity ?? null : null,
       unit_price: l.unitPrice,
+      unit_cost: l.unitCost ?? null,
       subtotal: r.subtotal,
       position: i,
     }

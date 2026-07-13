@@ -12,7 +12,7 @@ export async function getSettings(): Promise<AppSettings> {
   const supabase = createSupabaseServerClient()
   const { data } = await supabase
     .from('app_settings')
-    .select('business_name, legal_name, rnc, address, phone, whatsapp, email, instagram, notify_days, overload_warn, overload_heavy, default_theme, updated_at')
+    .select('business_name, legal_name, rnc, address, phone, whatsapp, email, instagram, notify_days, overload_warn, overload_heavy, default_theme, default_margin_pct, updated_at')
     .eq('id', 1)
     .maybeSingle()
 
@@ -35,6 +35,7 @@ export async function getSettings(): Promise<AppSettings> {
     overloadWarn: Number(data.overload_warn) || DEFAULT_SETTINGS.overloadWarn,
     overloadHeavy: Number(data.overload_heavy) || DEFAULT_SETTINGS.overloadHeavy,
     defaultTheme: (data.default_theme as ThemePref) ?? DEFAULT_SETTINGS.defaultTheme,
+    defaultMarginPct: data.default_margin_pct != null ? Number(data.default_margin_pct) : DEFAULT_SETTINGS.defaultMarginPct,
     updatedAt: data.updated_at ?? null,
   }
 }

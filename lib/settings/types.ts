@@ -15,6 +15,7 @@ export interface AppSettings {
   overloadWarn: number
   overloadHeavy: number
   defaultTheme: ThemePref
+  defaultMarginPct: number
   updatedAt: string | null
 }
 
@@ -43,6 +44,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   overloadWarn: 5,
   overloadHeavy: 8,
   defaultTheme: 'system',
+  defaultMarginPct: 50,
   updatedAt: null,
 }
 
