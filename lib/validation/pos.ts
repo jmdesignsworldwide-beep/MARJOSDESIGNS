@@ -2,13 +2,27 @@ import { z } from 'zod'
 import { cashMethod } from './caja'
 
 const money = z.coerce.number().finite().min(0).max(100_000_000)
+const dim = z.coerce.number().finite().min(0).max(100_000)
 
-export const posItemSchema = z.object({
-  productId: z.string().uuid().nullable().optional(),
-  description: z.string().trim().min(1, 'Falta la descripción').max(160),
-  quantity: z.coerce.number().finite().gt(0, 'Cantidad inválida').max(1_000_000),
-  unitPrice: money,
-})
+export const posItemSchema = z
+  .object({
+    productId: z.string().uuid().nullable().optional(),
+    description: z.string().trim().min(1, 'Falta la descripción').max(160),
+    calcType: z.enum(['area', 'quantity']).default('quantity'),
+    quantity: z.coerce.number().finite().min(0).max(1_000_000).default(1),
+    unitPrice: money,
+    // Dimensions are ALWAYS in inches by the time they reach the server.
+    widthIn: dim.optional(),
+    heightIn: dim.optional(),
+  })
+  .refine((v) => v.calcType !== 'quantity' || v.quantity > 0, {
+    message: 'Cantidad inválida',
+    path: ['quantity'],
+  })
+  .refine((v) => v.calcType !== 'area' || ((v.widthIn ?? 0) > 0 && (v.heightIn ?? 0) > 0), {
+    message: 'Falta ancho o alto',
+    path: ['widthIn'],
+  })
 
 export const createSaleSchema = z.object({
   items: z.array(posItemSchema).min(1, 'Agrega al menos un producto'),

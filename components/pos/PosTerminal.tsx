@@ -3,7 +3,15 @@
 import { useMemo, useRef, useState } from 'react'
 import { Search, Plus, Trash2, Minus, Tag, X, ShoppingCart } from 'lucide-react'
 import { cn, formatDOP } from '@/lib/utils'
-import { computeTotals, type DiscountType } from '@/lib/cotizador/calc'
+import {
+  computeLine,
+  computeTotals,
+  formatSqft,
+  toInches,
+  type CalcType,
+  type DiscountType,
+  type LengthUnit,
+} from '@/lib/cotizador/calc'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import type { Product } from '@/lib/cotizador/data'
@@ -15,8 +23,30 @@ export interface CartLine {
   key: number
   productId: string | null
   description: string
+  calcType: CalcType
   quantity: number
   unitPrice: number
+  /** Captured width/height (in the line's chosen unit). Stored as inches. */
+  width: number
+  height: number
+  unit: LengthUnit
+}
+
+/** Line subtotal via the SHARED engine (same as Cotizador + server). */
+export function lineSubtotal(l: CartLine): number {
+  return computeLine({
+    calcType: l.calcType,
+    unitPrice: l.unitPrice,
+    widthIn: toInches(l.width, l.unit),
+    heightIn: toInches(l.height, l.unit),
+    quantity: l.quantity,
+  }).subtotal
+}
+
+function lineReady(l: CartLine): boolean {
+  if (!l.description.trim()) return false
+  if (l.calcType === 'area') return l.width > 0 && l.height > 0 && l.unitPrice > 0
+  return l.quantity > 0
 }
 
 export function PosTerminal({ products }: { products: Product[] }) {
@@ -37,7 +67,7 @@ export function PosTerminal({ products }: { products: Product[] }) {
   const totals = useMemo(
     () =>
       computeTotals(
-        cart.map((l) => Math.round(l.quantity * l.unitPrice)),
+        cart.map(lineSubtotal),
         { type: discountType, value: Number(discountValue) || 0 },
       ),
     [cart, discountType, discountValue],
@@ -45,15 +75,35 @@ export function PosTerminal({ products }: { products: Product[] }) {
 
   function addProduct(p: Product) {
     setCart((c) => {
-      const existing = c.find((l) => l.productId === p.id)
-      if (existing) return c.map((l) => (l.key === existing.key ? { ...l, quantity: l.quantity + 1 } : l))
-      return [...c, { key: keyRef.current++, productId: p.id, description: p.name, quantity: 1, unitPrice: p.base_price }]
+      // Quantity products stack; area products are per-piece (each has its own
+      // dimensions) so they always add a fresh line.
+      if (p.calc_type === 'quantity') {
+        const existing = c.find((l) => l.productId === p.id && l.calcType === 'quantity')
+        if (existing) return c.map((l) => (l.key === existing.key ? { ...l, quantity: l.quantity + 1 } : l))
+      }
+      return [
+        ...c,
+        {
+          key: keyRef.current++,
+          productId: p.id,
+          description: p.name,
+          calcType: p.calc_type,
+          quantity: 1,
+          unitPrice: p.base_price,
+          width: 0,
+          height: 0,
+          unit: 'in' as LengthUnit,
+        },
+      ]
     })
     setQuery('')
   }
 
   function addCustom() {
-    setCart((c) => [...c, { key: keyRef.current++, productId: null, description: '', quantity: 1, unitPrice: 0 }])
+    setCart((c) => [
+      ...c,
+      { key: keyRef.current++, productId: null, description: '', calcType: 'quantity', quantity: 1, unitPrice: 0, width: 0, height: 0, unit: 'in' },
+    ])
   }
 
   function update(key: number, patch: Partial<CartLine>) {
@@ -89,7 +139,7 @@ export function PosTerminal({ products }: { products: Product[] }) {
     )
   }
 
-  const canCharge = cart.length > 0 && cart.every((l) => l.description.trim() && l.quantity > 0) && totals.total > 0
+  const canCharge = cart.length > 0 && cart.every(lineReady) && totals.total > 0
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
@@ -117,7 +167,9 @@ export function PosTerminal({ products }: { products: Product[] }) {
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatDOP(p.base_price)} · {p.unit_label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDOP(p.base_price)}{p.calc_type === 'area' ? '/pie²' : ''} · {p.unit_label}
+                  </p>
                 </div>
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-gold-gradient-soft text-gold-brand">
                   <Plus className="h-4 w-4" />
@@ -152,55 +204,7 @@ export function PosTerminal({ products }: { products: Product[] }) {
             ) : (
               <ul className="space-y-3">
                 {cart.map((l) => (
-                  <li key={l.key} className="rounded-xl border border-border p-3 dark:border-white/[0.08]">
-                    <div className="flex items-start justify-between gap-2">
-                      {l.productId ? (
-                        <p className="text-sm font-medium">{l.description}</p>
-                      ) : (
-                        <input
-                          value={l.description}
-                          onChange={(e) => update(l.key, { description: e.target.value })}
-                          placeholder="Descripción"
-                          className="w-full rounded-lg border border-border bg-input/5 px-2 py-1 text-sm outline-none focus:border-gold-mid"
-                        />
-                      )}
-                      <button type="button" onClick={() => remove(l.key)} className="shrink-0 text-muted-foreground hover:text-status-overdue">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="flex items-center rounded-lg border border-border">
-                        <button type="button" onClick={() => update(l.key, { quantity: Math.max(1, l.quantity - 1) })} className="grid h-8 w-8 place-items-center text-muted-foreground hover:text-foreground">
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min="1"
-                          value={l.quantity}
-                          onChange={(e) => update(l.key, { quantity: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
-                          className="tnum h-8 w-12 border-x border-border bg-transparent text-center text-sm outline-none"
-                        />
-                        <button type="button" onClick={() => update(l.key, { quantity: l.quantity + 1 })} className="grid h-8 w-8 place-items-center text-muted-foreground hover:text-foreground">
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                      <span className="text-xs text-muted-foreground">×</span>
-                      <div className="relative flex-1">
-                        <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">RD$</span>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="1"
-                          value={l.unitPrice}
-                          onChange={(e) => update(l.key, { unitPrice: Math.max(0, Number(e.target.value) || 0) })}
-                          className="tnum h-8 w-full rounded-lg border border-border bg-input/5 pl-9 pr-2 text-sm outline-none focus:border-gold-mid"
-                        />
-                      </div>
-                      <span className="tnum w-20 shrink-0 text-right text-sm font-semibold">{formatDOP(Math.round(l.quantity * l.unitPrice))}</span>
-                    </div>
-                  </li>
+                  <CartRow key={l.key} line={l} onChange={(patch) => update(l.key, patch)} onRemove={() => remove(l.key)} />
                 ))}
               </ul>
             )}
@@ -257,6 +261,119 @@ export function PosTerminal({ products }: { products: Product[] }) {
         discountValue={Number(discountValue) || 0}
         onPaid={onPaid}
       />
+    </div>
+  )
+}
+
+function CartRow({ line: l, onChange, onRemove }: { line: CartLine; onChange: (patch: Partial<CartLine>) => void; onRemove: () => void }) {
+  const isArea = l.calcType === 'area'
+  const sub = lineSubtotal(l)
+  const unitWord = l.unit === 'ft' ? 'pies' : 'pulg'
+  const sqft = isArea ? computeLine({ calcType: 'area', unitPrice: l.unitPrice, widthIn: toInches(l.width, l.unit), heightIn: toInches(l.height, l.unit) }).sqft : null
+
+  return (
+    <li className="rounded-xl border border-border p-3 dark:border-white/[0.08]">
+      <div className="flex items-start justify-between gap-2">
+        {l.productId ? (
+          <p className="text-sm font-medium">{l.description}</p>
+        ) : (
+          <input
+            value={l.description}
+            onChange={(e) => onChange({ description: e.target.value })}
+            placeholder="Descripción"
+            className="w-full rounded-lg border border-border bg-input/5 px-2 py-1 text-sm outline-none focus:border-gold-mid"
+          />
+        )}
+        <button type="button" onClick={onRemove} className="shrink-0 text-muted-foreground hover:text-status-overdue">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+
+      {isArea ? (
+        <>
+          {/* Unit toggle — pulgadas por defecto, pies como opción */}
+          <div className="mt-2 flex items-center gap-1">
+            <span className="mr-1 text-xs text-muted-foreground">Medidas en</span>
+            {(['in', 'ft'] as LengthUnit[]).map((u) => (
+              <button
+                key={u}
+                type="button"
+                onClick={() => onChange({ unit: u })}
+                className={cn('rounded-md px-2 py-0.5 text-xs font-medium transition-colors', l.unit === u ? 'bg-gold-gradient-soft text-gold-brand' : 'text-muted-foreground hover:text-foreground')}
+              >
+                {u === 'in' ? 'pulgadas' : 'pies'}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            <DimField label={`Ancho (${unitWord})`} value={l.width} onChange={(v) => onChange({ width: v })} />
+            <DimField label={`Alto (${unitWord})`} value={l.height} onChange={(v) => onChange({ height: v })} />
+            <DimField label="RD$/pie²" value={l.unitPrice} onChange={(v) => onChange({ unitPrice: v })} prefix="RD$" />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Tag className="h-3.5 w-3.5" />
+              {l.width || 0} × {l.height || 0} {unitWord} = {formatSqft(sqft)} pie² × {formatDOP(l.unitPrice)}
+            </span>
+            <span className="tnum text-sm font-semibold">{formatDOP(sub)}</span>
+          </div>
+        </>
+      ) : (
+        <div className="mt-2 flex items-center gap-2">
+          <div className="flex items-center rounded-lg border border-border">
+            <button type="button" onClick={() => onChange({ quantity: Math.max(1, l.quantity - 1) })} className="grid h-8 w-8 place-items-center text-muted-foreground hover:text-foreground">
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              min="1"
+              value={l.quantity}
+              onChange={(e) => onChange({ quantity: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
+              className="tnum h-8 w-12 border-x border-border bg-transparent text-center text-sm outline-none"
+            />
+            <button type="button" onClick={() => onChange({ quantity: l.quantity + 1 })} className="grid h-8 w-8 place-items-center text-muted-foreground hover:text-foreground">
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground">×</span>
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">RD$</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="1"
+              value={l.unitPrice}
+              onChange={(e) => onChange({ unitPrice: Math.max(0, Number(e.target.value) || 0) })}
+              className="tnum h-8 w-full rounded-lg border border-border bg-input/5 pl-9 pr-2 text-sm outline-none focus:border-gold-mid"
+            />
+          </div>
+          <span className="tnum w-20 shrink-0 text-right text-sm font-semibold">{formatDOP(sub)}</span>
+        </div>
+      )}
+    </li>
+  )
+}
+
+function DimField({ label, value, onChange, prefix }: { label: string; value: number; onChange: (v: number) => void; prefix?: string }) {
+  return (
+    <div>
+      <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{label}</label>
+      <div className="relative">
+        {prefix && <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>}
+        <input
+          type="number"
+          inputMode="decimal"
+          min="0"
+          step="any"
+          aria-label={label}
+          value={value === 0 ? '' : value}
+          onChange={(e) => onChange(Math.max(0, Number(e.target.value) || 0))}
+          placeholder="0"
+          className={cn('tnum h-9 w-full rounded-lg border border-border bg-input/5 text-right text-sm outline-none focus:border-gold-mid', prefix ? 'pl-9 pr-2' : 'px-2')}
+        />
+      </div>
     </div>
   )
 }

@@ -6,9 +6,9 @@ import { formatDOP } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { methodLabel } from '@/lib/caja/format'
-import type { QuoteTotals } from '@/lib/cotizador/calc'
+import { computeLine, formatSqft, toInches, type QuoteTotals } from '@/lib/cotizador/calc'
 import type { CashMethod } from '@/lib/caja/types'
-import type { CartLine } from './PosTerminal'
+import { lineSubtotal, type CartLine } from './PosTerminal'
 
 export function Receipt({
   saleNumber,
@@ -50,14 +50,26 @@ export function Receipt({
         </div>
 
         <div className="mt-4 space-y-1.5 border-y border-dashed border-border py-3 text-sm">
-          {lines.map((l) => (
-            <div key={l.key} className="flex justify-between gap-3">
-              <span className="min-w-0 truncate">
-                <span className="tnum text-muted-foreground">{l.quantity}×</span> {l.description}
-              </span>
-              <span className="tnum shrink-0 font-medium">{formatDOP(Math.round(l.quantity * l.unitPrice))}</span>
-            </div>
-          ))}
+          {lines.map((l) => {
+            const isArea = l.calcType === 'area'
+            const unitWord = l.unit === 'ft' ? 'pies' : 'pulg'
+            const sqft = isArea
+              ? computeLine({ calcType: 'area', unitPrice: l.unitPrice, widthIn: toInches(l.width, l.unit), heightIn: toInches(l.height, l.unit) }).sqft
+              : null
+            return (
+              <div key={l.key} className="flex justify-between gap-3">
+                <span className="min-w-0 truncate">
+                  {isArea ? (
+                    <span className="tnum text-muted-foreground">{l.width}×{l.height} {unitWord} = {formatSqft(sqft)} pie² </span>
+                  ) : (
+                    <span className="tnum text-muted-foreground">{l.quantity}× </span>
+                  )}
+                  {l.description}
+                </span>
+                <span className="tnum shrink-0 font-medium">{formatDOP(lineSubtotal(l))}</span>
+              </div>
+            )
+          })}
         </div>
 
         <div className="mt-3 space-y-1 text-sm">

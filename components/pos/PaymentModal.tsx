@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { cn, formatDOP } from '@/lib/utils'
-import { roundMoney, type DiscountType } from '@/lib/cotizador/calc'
+import { roundMoney, toInches, type DiscountType } from '@/lib/cotizador/calc'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Field'
@@ -57,8 +57,11 @@ export function PaymentModal({
         items: cart.map((l) => ({
           productId: l.productId,
           description: l.description,
+          calcType: l.calcType,
           quantity: l.quantity,
           unitPrice: l.unitPrice,
+          widthIn: l.calcType === 'area' ? toInches(l.width, l.unit) : undefined,
+          heightIn: l.calcType === 'area' ? toInches(l.height, l.unit) : undefined,
         })),
         discountType,
         discountValue,
