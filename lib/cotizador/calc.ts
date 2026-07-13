@@ -76,6 +76,35 @@ export function computeLine(input: LineInput): LineResult {
   return { areaIn2: null, sqft: null, subtotal: roundMoney(qty * price) }
 }
 
+/** Suggested SELL price from a cost + margin % (whole peso). */
+export function suggestedSell(unitCost: number, marginPct: number): number {
+  const c = Math.max(0, Number(unitCost) || 0)
+  const m = Math.max(0, Number(marginPct) || 0)
+  return roundMoney(c * (1 + m / 100))
+}
+
+export interface LineMargin {
+  cost: number
+  profit: number
+  marginPct: number | null // null when cost is 0 (can't compute %)
+  belowCost: boolean
+}
+
+/** Margin of a line: what Marjos earns over her cost, for the whole line. */
+export function computeMargin(unitPrice: number, unitCost: number, quantity: number): LineMargin {
+  const price = Math.max(0, Number(unitPrice) || 0)
+  const cost = Math.max(0, Number(unitCost) || 0)
+  const qty = Math.max(0, Number(quantity) || 0)
+  const totalCost = roundMoney(cost * qty)
+  const totalSell = roundMoney(price * qty)
+  return {
+    cost: totalCost,
+    profit: roundMoney(totalSell - totalCost),
+    marginPct: cost > 0 ? Math.round(((price - cost) / cost) * 100) : null,
+    belowCost: cost > 0 && price < cost,
+  }
+}
+
 export interface QuoteTotals {
   subtotal: number
   discountAmount: number

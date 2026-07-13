@@ -25,6 +25,7 @@ interface ComputedItem {
   sqft: number | null
   quantity: number | null
   unit_price: number
+  unit_cost: number | null
   subtotal: number
   position: number
 }
@@ -39,6 +40,7 @@ function recompute(
     heightIn?: number
     quantity?: number
     unitPrice: number
+    unitCost?: number | null
   }[],
   discount: { type: 'none' | 'amount' | 'percent'; value: number },
 ) {
@@ -59,6 +61,7 @@ function recompute(
       sqft: r.sqft,
       quantity: l.calcType === 'quantity' ? l.quantity ?? null : null,
       unit_price: l.unitPrice,
+      unit_cost: l.unitCost ?? null,
       subtotal: r.subtotal,
       position: i,
     }
@@ -205,6 +208,7 @@ export async function convertQuoteToOrder(quoteId: string): Promise<void> {
       heightIn: l.height_in ?? undefined,
       quantity: l.quantity ?? undefined,
       unitPrice: l.unit_price,
+      unitCost: l.unit_cost ?? null,
     })),
     { type: quote.discount_type, value: quote.discount_value },
   )

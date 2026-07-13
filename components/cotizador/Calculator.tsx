@@ -10,6 +10,7 @@ import {
   Percent,
   PackagePlus,
   Save,
+  Factory,
 } from 'lucide-react'
 import { cn, formatDOP } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
@@ -23,8 +24,10 @@ import { ClientPicker } from '@/components/clientes/ClientPicker'
 import { InchHelper } from './InchHelper'
 import {
   computeLine,
+  computeMargin,
   computeTotals,
   formatSqft,
+  suggestedSell,
   toInches,
   type CalcType,
   type LengthUnit,
@@ -44,11 +47,21 @@ interface LineState {
   unit: LengthUnit
   quantity: string
   unitPrice: string
+  /** Supplier cost (for margin). '' when unknown. */
+  unitCost: string
 }
 
 interface ClientOption {
   id: string
   name: string
+}
+
+export interface SupplierItem {
+  id: string
+  name: string
+  category: string
+  supplierName: string
+  cost: number
 }
 
 function num(s: string): number {
@@ -59,9 +72,13 @@ function num(s: string): number {
 export function Calculator({
   products,
   clients,
+  supplierItems = [],
+  defaultMargin = 50,
 }: {
   products: Product[]
   clients: ClientOption[]
+  supplierItems?: SupplierItem[]
+  defaultMargin?: number
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -75,6 +92,7 @@ export function Calculator({
   const [notes, setNotes] = useState('')
   const [newProduct, setNewProduct] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [margin, setMargin] = useState(String(defaultMargin))
 
   function addLine(productId: string) {
     const p = products.find((x) => x.id === productId)
@@ -92,6 +110,29 @@ export function Calculator({
         unit: 'in',
         quantity: '',
         unitPrice: String(p.base_price),
+        unitCost: '',
+      },
+    ])
+  }
+
+  /** Add a line from a supplier catalog item: cost known → suggest sell price. */
+  function addSupplierLine(itemId: string) {
+    const it = supplierItems.find((x) => x.id === itemId)
+    if (!it) return
+    setLines((prev) => [
+      ...prev,
+      {
+        key: `l${keySeq.current++}`,
+        productId: null,
+        description: it.name,
+        calcType: 'quantity',
+        unitLabel: 'unidad',
+        widthIn: '',
+        heightIn: '',
+        unit: 'in',
+        quantity: '1',
+        unitPrice: String(suggestedSell(it.cost, num(margin))),
+        unitCost: String(it.cost),
       },
     ])
   }
@@ -151,6 +192,7 @@ export function Calculator({
         heightIn: toInches(num(l.heightIn), l.unit),
         quantity: num(l.quantity),
         unitPrice: num(l.unitPrice),
+        unitCost: l.unitCost ? num(l.unitCost) : '',
       })),
     })
     setSaving(false)
@@ -193,6 +235,55 @@ export function Calculator({
             </Button>
           </div>
         </Card>
+
+        {/* Producto de proveedor — costo → venta sugerida con margen */}
+        {supplierItems.length > 0 && (
+          <Card>
+            <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+              <Factory className="h-4 w-4 text-gold-brand" />
+              Producto de proveedor (con costo)
+            </div>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="min-w-[220px] flex-1">
+                <Select
+                  id="add-supplier-item"
+                  label="Elegir del catálogo del suplidor"
+                  value=""
+                  onChange={(e) => { if (e.target.value) addSupplierLine(e.target.value) }}
+                >
+                  <option value="">Busca por nombre…</option>
+                  {Array.from(new Set(supplierItems.map((s) => s.category))).map((cat) => (
+                    <optgroup key={cat} label={cat}>
+                      {supplierItems.filter((s) => s.category === cat).map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} · costo {formatDOP(s.cost)} · {s.supplierName}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </Select>
+              </div>
+              <div className="w-28">
+                <label className="mb-1.5 block text-sm font-medium">Margen %</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="1"
+                    value={margin}
+                    onChange={(e) => setMargin(e.target.value)}
+                    className="tnum h-11 w-full rounded-xl border border-border bg-input/5 px-3 pr-7 text-sm outline-none focus:border-gold-mid focus:ring-2 focus:ring-gold-mid/30"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Al elegir, se sugiere el precio de venta (costo + {num(margin) || 0}%). Puedes cambiarlo a mano; verás tu ganancia.
+            </p>
+          </Card>
+        )}
 
         {lines.length === 0 ? (
           <Card className="flex flex-col items-center gap-2 py-12 text-center">
@@ -407,9 +498,26 @@ function LineRow({
           </span>
           <span className="tnum text-lg font-bold">{formatDOP(result.subtotal)}</span>
         </div>
+
+        {/* Margen — solo cuando hay costo del proveedor */}
+        {num(line.unitCost) > 0 && (() => {
+          const m = computeMargin(num(line.unitPrice), num(line.unitCost), isArea ? 1 : num(line.quantity) || 1)
+          return (
+            <div className={cn('mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-xs', m.belowCost ? 'bg-status-overdue/10 text-status-overdue' : 'bg-status-ready/10 text-status-ready')}>
+              <span>Costo {formatDOP(m.cost)} · Vendes {formatDOP(roundLineSell(num(line.unitPrice), isArea ? 1 : num(line.quantity) || 1))}</span>
+              <span className="font-semibold">
+                {m.belowCost ? '⚠︎ por debajo del costo' : `Ganas ${formatDOP(m.profit)}${m.marginPct != null ? ` (${m.marginPct}%)` : ''}`}
+              </span>
+            </div>
+          )
+        })()}
       </Card>
     </motion.div>
   )
+}
+
+function roundLineSell(unitPrice: number, qty: number): number {
+  return Math.round(unitPrice * qty)
 }
 
 function NumField({
