@@ -2,7 +2,8 @@
 import type { OrderStage } from '@/lib/ordenes/format'
 
 export type CalState = 'proceso' | 'lista' | 'entregada' | 'vencida'
-export type CalKind = 'nota' | 'evento' | 'feriado'
+export type CalKind = 'nota' | 'tarea' | 'pago' | 'evento' | 'feriado'
+export type Recurrence = 'once' | 'weekly' | 'monthly'
 
 export interface CalendarOrder {
   id: string
@@ -24,6 +25,39 @@ export interface CalendarNote {
   kind: CalKind
   title: string
   body: string | null
+  amount: number | null
+  recurrence: Recurrence
+  recurrenceEnd: string | null
+}
+
+/** Per-occurrence state row (only exists when acted on / overridden). */
+export interface NoteOccurrenceState {
+  noteId: number
+  occurrenceDate: string
+  done: boolean
+  skipped: boolean
+  overrideTitle: string | null
+  overrideAmount: number | null
+  expenseId: number | null
+}
+
+/** A concrete occurrence of a note on a date (series expanded + state). */
+export interface CalendarOccurrence {
+  noteId: number
+  date: string
+  kind: CalKind
+  title: string
+  body: string | null
+  amount: number | null
+  recurrence: Recurrence
+  done: boolean
+  expenseId: number | null
+}
+
+export const recurrenceLabel: Record<Recurrence, string> = {
+  once: 'Una vez',
+  weekly: 'Cada semana',
+  monthly: 'Cada mes',
 }
 
 /** Live color state of an order on the calendar (overdue overrides). */
@@ -69,6 +103,8 @@ export const calStateMeta: Record<
 }
 
 export const noteKindMeta: Record<CalKind, { label: string; emoji: string; chip: string }> = {
+  tarea: { label: 'Tarea', emoji: '✅', chip: 'border-status-process/30 bg-status-process/10 text-status-process' },
+  pago: { label: 'Recordatorio de pago', emoji: '💵', chip: 'border-status-ready/30 bg-status-ready/10 text-status-ready' },
   nota: { label: 'Nota', emoji: '📝', chip: 'border-gold-mid/30 bg-gold-gradient-soft text-gold-brand' },
   evento: { label: 'Evento', emoji: '📌', chip: 'border-gold-mid/30 bg-gold-gradient-soft text-gold-brand' },
   feriado: { label: 'Feriado', emoji: '🎉', chip: 'border-gold-mid/30 bg-gold-gradient-soft text-gold-brand' },

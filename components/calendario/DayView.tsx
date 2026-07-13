@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/dashboard/EmptyState'
 import { CalendarCheck } from 'lucide-react'
 import { dayFull } from '@/lib/calendario/dates'
 import { orderCode, stageMeta } from '@/lib/ordenes/format'
-import { orderCalState, calStateMeta, noteKindMeta, type CalendarOrder, type CalendarNote } from '@/lib/calendario/types'
+import { orderCalState, calStateMeta, noteKindMeta, type CalendarOrder, type CalendarOccurrence } from '@/lib/calendario/types'
 
 export function DayView({
   anchor,
@@ -20,9 +20,9 @@ export function DayView({
   anchor: string
   todayISO: string
   orders: CalendarOrder[]
-  notes: CalendarNote[]
+  notes: CalendarOccurrence[]
   onSelectOrder: (o: CalendarOrder) => void
-  onEditNote: (n: CalendarNote) => void
+  onEditNote: (n: CalendarOccurrence) => void
   hideMoney?: boolean
 }) {
   return (
@@ -32,8 +32,8 @@ export function DayView({
       {notes.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {notes.map((n) => (
-            <button key={n.id} onClick={() => onEditNote(n)} className={cn('rounded-xl border border-dashed px-3 py-1.5 text-sm', noteKindMeta[n.kind].chip)}>
-              {noteKindMeta[n.kind].emoji} {n.title}
+            <button key={`${n.noteId}-${n.date}`} onClick={() => onEditNote(n)} className={cn('rounded-xl border border-dashed px-3 py-1.5 text-sm transition-transform hover:scale-[1.02]', noteKindMeta[n.kind].chip, n.done && 'opacity-60')}>
+              {noteKindMeta[n.kind].emoji} <span className={cn(n.done && 'line-through')}>{n.title}</span>
             </button>
           ))}
         </div>

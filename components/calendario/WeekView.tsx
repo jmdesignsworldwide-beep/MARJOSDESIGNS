@@ -2,7 +2,7 @@
 
 import { cn, formatDOP } from '@/lib/utils'
 import { weekDates, dayNum, weekdayLabels } from '@/lib/calendario/dates'
-import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type CalendarOrder, type CalendarNote } from '@/lib/calendario/types'
+import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type CalendarOrder, type CalendarOccurrence } from '@/lib/calendario/types'
 
 export function WeekView({
   anchor,
@@ -10,13 +10,15 @@ export function WeekView({
   ordersByDate,
   notesByDate,
   onSelectOrder,
+  onSelectNote,
   onAddNote,
 }: {
   anchor: string
   todayISO: string
   ordersByDate: Map<string, CalendarOrder[]>
-  notesByDate: Map<string, CalendarNote[]>
+  notesByDate: Map<string, CalendarOccurrence[]>
   onSelectOrder: (o: CalendarOrder) => void
+  onSelectNote: (o: CalendarOccurrence) => void
   onAddNote: (iso: string) => void
 }) {
   const days = weekDates(anchor)
@@ -54,7 +56,10 @@ export function WeekView({
                 )
               })}
               {notes.map((n) => (
-                <div key={n.id} className={cn('rounded-lg border border-dashed px-2 py-1 text-[11px]', noteKindMeta[n.kind].chip)}>{noteKindMeta[n.kind].emoji} {n.title}</div>
+                <button key={`${n.noteId}-${n.date}`} onClick={() => onSelectNote(n)} className={cn('block w-full truncate rounded-lg border border-dashed px-2 py-1 text-left text-[11px] transition-transform hover:scale-[1.02]', noteKindMeta[n.kind].chip, n.done && 'opacity-60')}>
+                  {noteKindMeta[n.kind].emoji} <span className={cn(n.done && 'line-through')}>{n.title}</span>
+                  {n.kind === 'pago' && n.amount != null && <span className="tnum ml-1 font-semibold">{formatDOP(n.amount)}</span>}
+                </button>
               ))}
               {orders.length === 0 && notes.length === 0 && <p className="py-2 text-center text-[11px] text-muted-foreground/60">—</p>}
             </div>

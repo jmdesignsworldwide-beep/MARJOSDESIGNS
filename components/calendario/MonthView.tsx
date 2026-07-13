@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils'
 import { monthGrid, weekdayLabels, dayNum, sameMonth } from '@/lib/calendario/dates'
-import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type CalendarOrder, type CalendarNote } from '@/lib/calendario/types'
+import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type CalendarOrder, type CalendarOccurrence } from '@/lib/calendario/types'
 
 export function MonthView({
   anchor,
@@ -10,6 +10,7 @@ export function MonthView({
   ordersByDate,
   notesByDate,
   onSelectOrder,
+  onSelectNote,
   onDayClick,
   onDropOrder,
   canDrag,
@@ -17,8 +18,9 @@ export function MonthView({
   anchor: string
   todayISO: string
   ordersByDate: Map<string, CalendarOrder[]>
-  notesByDate: Map<string, CalendarNote[]>
+  notesByDate: Map<string, CalendarOccurrence[]>
   onSelectOrder: (o: CalendarOrder) => void
+  onSelectNote: (o: CalendarOccurrence) => void
   onDayClick: (iso: string) => void
   onDropOrder: (orderId: string, dateISO: string) => void
   canDrag: boolean
@@ -88,9 +90,15 @@ export function MonthView({
                 })}
                 {orders.length > 3 && <p className="pl-1 text-[10px] text-muted-foreground">+{orders.length - 3} más</p>}
                 {notes.slice(0, 2).map((n) => (
-                  <div key={n.id} className={cn('truncate rounded-md border border-dashed px-1.5 py-0.5 text-[11px]', noteKindMeta[n.kind].chip)} title={n.title}>
-                    {noteKindMeta[n.kind].emoji} {n.title}
-                  </div>
+                  <button
+                    key={`${n.noteId}-${n.date}`}
+                    onClick={(e) => { e.stopPropagation(); onSelectNote(n) }}
+                    className={cn('flex w-full items-center gap-1 truncate rounded-md border border-dashed px-1.5 py-0.5 text-left text-[11px] transition-transform hover:scale-[1.02]', noteKindMeta[n.kind].chip, n.done && 'opacity-60')}
+                    title={n.title}
+                  >
+                    <span className="shrink-0">{noteKindMeta[n.kind].emoji}</span>
+                    <span className={cn('truncate', n.done && 'line-through')}>{n.title}</span>
+                  </button>
                 ))}
               </div>
             </div>
