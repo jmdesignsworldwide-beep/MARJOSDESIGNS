@@ -7,6 +7,7 @@ import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type Calendar
 export function WeekView({
   anchor,
   todayISO,
+  overloadWarn = OVERLOAD_WARN,
   ordersByDate,
   notesByDate,
   onSelectOrder,
@@ -15,6 +16,7 @@ export function WeekView({
 }: {
   anchor: string
   todayISO: string
+  overloadWarn?: number
   ordersByDate: Map<string, CalendarOrder[]>
   notesByDate: Map<string, CalendarOccurrence[]>
   onSelectOrder: (o: CalendarOrder) => void
@@ -38,7 +40,7 @@ export function WeekView({
               </div>
               <button type="button" onClick={() => onAddNote(iso)} className="grid h-6 w-6 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" title="Agregar nota">+</button>
             </div>
-            {active.length >= OVERLOAD_WARN && (
+            {active.length >= overloadWarn && (
               <p className="mb-1.5 rounded-lg bg-status-overdue/10 px-2 py-1 text-[11px] font-semibold text-status-overdue">⚡ {active.length} entregas</p>
             )}
             <div className="space-y-1.5">
