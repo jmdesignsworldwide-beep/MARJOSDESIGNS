@@ -86,53 +86,11 @@ create policy employee_vacations_all on public.employee_vacations for all to aut
 revoke all on public.employee_payroll, public.payroll_payments, public.employee_vacations from anon;
 revoke update, delete, truncate on public.payroll_payments from authenticated;
 
--- ───────────── Helper: is the caller an active employee? ───────────────────
-create or replace function private.is_active_employee()
-returns boolean
-language sql
-security definer
-stable
-set search_path = public, pg_temp
-as $$
-  select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'empleado' and status = 'activo'
-  );
-$$;
-revoke all on function private.is_active_employee() from public, anon;
-grant execute on function private.is_active_employee() to authenticated;
-
--- ─────── Employee action: advance ONLY own orders, allowed stages ──────────
-create or replace function public.employee_advance_stage(p_order uuid, p_stage public.order_stage)
-returns void
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  v_from public.order_stage;
-  v_assigned uuid;
-begin
-  if not private.is_active_employee() then
-    raise exception 'no autorizado';
-  end if;
-  if p_stage not in ('en_diseno', 'en_produccion', 'lista') then
-    raise exception 'etapa no permitida para empleado';
-  end if;
-
-  select stage, assigned_to into v_from, v_assigned from public.orders where id = p_order;
-  if v_assigned is null or v_assigned <> auth.uid() then
-    raise exception 'esta orden no está asignada a ti';
-  end if;
-  if v_from = 'cancelada' or v_from = 'entregada' then
-    raise exception 'orden cerrada';
-  end if;
-  if v_from = p_stage then return; end if;
-
-  update public.orders set stage = p_stage where id = p_order;
-  insert into public.order_stage_history (order_id, from_stage, to_stage, changed_by)
-    values (p_order, v_from, p_stage, auth.uid());
-end;
-$$;
-revoke all on function public.employee_advance_stage(uuid, public.order_stage) from public, anon;
-grant execute on function public.employee_advance_stage(uuid, public.order_stage) to authenticated;
+-- ─────── Employee stage changes: NOT via a DB function ─────────────────────
+-- Employees never get UPDATE on orders (orders_update is super_admin-only).
+-- The employee's "advance my order" action runs on the SERVER: it verifies
+-- the caller's session (requireAuth) AND that the order is assigned to them
+-- AND that the target stage is allowed, then writes with the service_role.
+-- Keeping this in the app layer (no SECURITY DEFINER function exposed to
+-- authenticated) avoids granting privileged execution to employees while the
+-- write path stays gated by the verified session. See lib/empleado/actions.ts.
