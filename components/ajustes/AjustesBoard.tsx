@@ -3,18 +3,21 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { useFormState, useFormStatus } from 'react-dom'
+import { useState } from 'react'
 import {
   Building2, BellRing, Palette, ShieldCheck, Users, Tag, ReceiptText, History,
-  DatabaseZap, ChevronRight, Save, KeyRound, Check,
+  DatabaseZap, ChevronRight, Save, KeyRound, Check, Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Field'
 import { useToast } from '@/components/ui/Toast'
+import { PinInput } from '@/components/security/PinInput'
 import {
   updateBusinessData, updateAlerts, updatePreferences, changeAdminPassword, type SettingsState,
 } from '@/lib/settings/actions'
+import { setOrChangePin, type PinActionState } from '@/lib/security/actions'
 import type { AppSettings } from '@/lib/settings/types'
 
 const initial: SettingsState = {}
@@ -41,7 +44,7 @@ function useActionToast(state: SettingsState) {
   }, [state, toast])
 }
 
-export function AjustesBoard({ settings }: { settings: AppSettings }) {
+export function AjustesBoard({ settings, pinIsSet }: { settings: AppSettings; pinIsSet: boolean }) {
   return (
     <div className="space-y-6">
       <div>
@@ -57,10 +60,74 @@ export function AjustesBoard({ settings }: { settings: AppSettings }) {
         <PasswordSection />
       </div>
 
+      <PinSection pinIsSet={pinIsSet} />
+
       <LinksSection />
       <BackupSection updatedAt={settings.updatedAt} />
     </div>
   )
+}
+
+const pinInitial: PinActionState = {}
+
+function PinSection({ pinIsSet }: { pinIsSet: boolean }) {
+  const [state, action] = useFormState(setOrChangePin, pinInitial)
+  const [pin, setPin] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const { toast } = useToast()
+  const fe = state.fieldErrors ?? {}
+
+  // Clear the boxes after a successful save.
+  const [savedFlag, setSavedFlag] = useState<string | undefined>()
+  if (state.success && state.success !== savedFlag) {
+    setSavedFlag(state.success)
+    setPin('')
+    setConfirm('')
+    toast({ title: state.success, variant: 'success' })
+  }
+
+  return (
+    <Card>
+      <CardHeader
+        title="PIN de seguridad"
+        subtitle={pinIsSet ? 'Tu PIN protege las acciones destructivas (borrar empleados, y pronto cajas)' : 'Configura un PIN de 4 dígitos para autorizar acciones sensibles'}
+        action={<Lock className="h-4 w-4 text-gold-brand" />}
+      />
+      <form action={action} className="space-y-4">
+        <input type="hidden" name="pin" value={pin} />
+        <input type="hidden" name="confirm" value={confirm} />
+
+        {pinIsSet && (
+          <Input id="pin-pass" name="password" type="password" label="Tu contraseña (para cambiar el PIN)" autoComplete="current-password" error={fe.password} required />
+        )}
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="mb-2 text-sm font-medium">{pinIsSet ? 'Nuevo PIN' : 'PIN (4 dígitos)'}</p>
+            <PinInput value={pin} onChange={setPin} autoFocus={false} />
+            {fe.pin && <p className="mt-1.5 text-center text-xs font-medium text-status-overdue">{fe.pin}</p>}
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-medium">Confirmar PIN</p>
+            <PinInput value={confirm} onChange={setConfirm} autoFocus={false} />
+            {fe.confirm && <p className="mt-1.5 text-center text-xs font-medium text-status-overdue">{fe.confirm}</p>}
+          </div>
+        </div>
+
+        {state.error && !state.fieldErrors && <p className="text-sm font-medium text-status-overdue">{state.error}</p>}
+
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">Se guarda cifrado. Nunca viaja en texto plano.</p>
+          <PinSaveBtn label={pinIsSet ? 'Cambiar PIN' : 'Guardar PIN'} />
+        </div>
+      </form>
+    </Card>
+  )
+}
+
+function PinSaveBtn({ label }: { label: string }) {
+  const { pending } = useFormStatus()
+  return <Button type="submit" loading={pending} size="sm"><Lock className="h-4 w-4" />{label}</Button>
 }
 
 function BusinessSection({ settings }: { settings: AppSettings }) {
