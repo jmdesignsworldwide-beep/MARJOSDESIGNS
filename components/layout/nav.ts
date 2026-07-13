@@ -30,8 +30,8 @@ export const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['super_admin', 'empleado'] },
 
   // Employee view — simplified
-  { label: 'Mis Órdenes', icon: ClipboardList, href: '/mis-ordenes', roles: ['empleado'], placeholder: true },
-  { label: 'Mi Calendario', icon: CalendarDays, href: '/mi-calendario', roles: ['empleado'], placeholder: true },
+  { label: 'Mis Órdenes', icon: ClipboardList, href: '/mis-ordenes', roles: ['empleado'] },
+  { label: 'Mi Calendario', icon: CalendarDays, href: '/mi-calendario', roles: ['empleado'] },
 
   // Admin-only
   { label: 'Calendario', icon: CalendarDays, href: '/calendario', roles: ['super_admin'] },
@@ -40,9 +40,9 @@ export const navItems: NavItem[] = [
   { label: 'Gastos', icon: ReceiptText, href: '/gastos', roles: ['super_admin'] },
   { label: 'Finanzas', icon: LineChart, href: '/finanzas', roles: ['super_admin'] },
   { label: 'Nómina', icon: BadgeDollarSign, href: '/nominas', roles: ['super_admin'] },
-  { label: 'Órdenes', icon: ClipboardList, href: '/ordenes', roles: ['super_admin'], placeholder: true },
-  { label: 'Cotizador', icon: Calculator, href: '/cotizador', roles: ['super_admin'], placeholder: true },
-  { label: 'Clientes', icon: Users, href: '/clientes', roles: ['super_admin'], placeholder: true },
+  { label: 'Órdenes', icon: ClipboardList, href: '/ordenes', roles: ['super_admin'] },
+  { label: 'Cotizador', icon: Calculator, href: '/cotizador', roles: ['super_admin'] },
+  { label: 'Clientes', icon: Users, href: '/clientes', roles: ['super_admin'] },
   { label: 'Proveedores', icon: Truck, href: '/proveedores', roles: ['super_admin'] },
   { label: 'Inventario', icon: Package, href: '/inventario', roles: ['super_admin'] },
   { label: 'Usuarios', icon: UserCog, href: '/usuarios', roles: ['super_admin'] },

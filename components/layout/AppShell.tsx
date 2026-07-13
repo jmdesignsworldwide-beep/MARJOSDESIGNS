@@ -6,6 +6,7 @@ import type { DeliveryNotice } from '@/lib/notifications/data'
 import { Sidebar } from './Sidebar'
 import { MobileDrawer } from './MobileDrawer'
 import { Header } from './Header'
+import { WelcomeCurtain } from './WelcomeCurtain'
 
 /**
  * App layout: fixed desktop sidebar + sticky header + scrollable main.
@@ -25,8 +26,11 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false)
   const role = profile?.role
 
+  const firstName = profile?.full_name?.split(' ')[0] ?? ''
+
   return (
     <div className="min-h-dvh">
+      {profile && <WelcomeCurtain name={firstName} />}
       <Sidebar role={role} />
       <MobileDrawer open={menuOpen} onClose={() => setMenuOpen(false)} role={role} />
 
