@@ -37,10 +37,10 @@ export function CategoriesModal({
   }, [state, toast])
 
   return (
-    <Modal open={open} onClose={onClose} title="Categorías de gastos" description="Agrega las que te falten o desactiva las que no uses.">
+    <Modal open={open} onClose={onClose} title="Subcategorías de gastos" description="Un solo lugar de gestión. Agrega las que te falten o desactiva las que no uses.">
       <div className="space-y-5">
         <form action={action} className="flex flex-wrap items-end gap-2">
-          <div className="flex-1"><Input id="cat-name" name="name" label="Nueva categoría" placeholder="Ej. Publicidad" required /></div>
+          <div className="flex-1"><Input id="cat-name" name="name" label="Nueva subcategoría" placeholder="Ej. Farmacia" required /></div>
           <Select id="cat-grp" name="grp" label="Grupo" value={grp} onChange={(e) => setGrp(e.target.value)}>
             {GROUPS.map((g) => <option key={g} value={g}>{groupMeta[g].short}</option>)}
           </Select>

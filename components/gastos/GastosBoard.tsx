@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useFormState } from 'react-dom'
-import { Plus, Printer, Tags, TrendingUp, TrendingDown, Wallet, Crown, Filter } from 'lucide-react'
+import { Plus, Printer, Tags, TrendingUp, TrendingDown, Wallet, Crown, Filter, Lightbulb } from 'lucide-react'
 import { cn, formatDOP } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -108,7 +108,7 @@ export function GastosBoard({
           <p className="mt-1 text-sm text-muted-foreground">Lo que sale. Toma foto del recibo y listo — el sistema te dice a dónde se va el dinero.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={() => setCatsOpen(true)}><Tags className="h-4 w-4" />Categorías</Button>
+          <Button variant="secondary" onClick={() => setCatsOpen(true)}><Tags className="h-4 w-4" />Subcategorías</Button>
           <Button variant="secondary" onClick={() => window.print()}><Printer className="h-4 w-4" />PDF</Button>
           <Button onClick={openNew}><Plus className="h-4 w-4" />Registrar gasto</Button>
         </div>
@@ -154,6 +154,25 @@ export function GastosBoard({
       </div>
 
       <GastosCharts overview={overview} currentMonth={currentMonth} />
+
+      {/* Capa inteligente — insights en cristiano */}
+      {overview.insights.length > 0 && (
+        <Card className="no-print border-gold-mid/30 bg-gold-gradient-soft/40">
+          <div className="flex items-start gap-3">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gold-gradient text-white">
+              <Lightbulb className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-semibold text-gold-brand">Para que decidas mejor</p>
+              <ul className="space-y-0.5 text-sm text-foreground/90">
+                {overview.insights.map((t, i) => (
+                  <li key={i}>· {t}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="no-print flex flex-wrap items-center gap-2">
