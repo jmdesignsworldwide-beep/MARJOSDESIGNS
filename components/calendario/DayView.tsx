@@ -15,6 +15,7 @@ export function DayView({
   notes,
   onSelectOrder,
   onEditNote,
+  hideMoney = false,
 }: {
   anchor: string
   todayISO: string
@@ -22,6 +23,7 @@ export function DayView({
   notes: CalendarNote[]
   onSelectOrder: (o: CalendarOrder) => void
   onEditNote: (n: CalendarNote) => void
+  hideMoney?: boolean
 }) {
   return (
     <div className="space-y-4">
@@ -58,13 +60,15 @@ export function DayView({
                     <p className="truncate text-sm">{o.clientName ?? 'Sin cliente'}</p>
                     <p className="truncate text-xs text-muted-foreground">{o.summary}{o.assignedName ? ` · ${o.assignedName}` : ''}</p>
                   </div>
-                  <div className="shrink-0 text-right">
-                    {o.balance > 0 ? (
-                      <span className="tnum text-sm font-bold text-status-overdue">{formatDOP(o.balance)}</span>
-                    ) : (
-                      <span className="text-xs font-semibold text-status-ready">Pagada ✓</span>
-                    )}
-                  </div>
+                  {!hideMoney && (
+                    <div className="shrink-0 text-right">
+                      {o.balance > 0 ? (
+                        <span className="tnum text-sm font-bold text-status-overdue">{formatDOP(o.balance)}</span>
+                      ) : (
+                        <span className="text-xs font-semibold text-status-ready">Pagada ✓</span>
+                      )}
+                    </div>
+                  )}
                 </button>
               </li>
             )
