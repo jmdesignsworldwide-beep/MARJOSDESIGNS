@@ -1,17 +1,11 @@
-import { CalendarDays } from 'lucide-react'
 import { requireAuth } from '@/lib/auth/guards'
-import { ModulePlaceholder } from '@/components/ModulePlaceholder'
+import { getMyCalendarOrders, todayDR } from '@/lib/empleado/data'
+import { EmployeeCalendar } from '@/components/empleado/EmployeeCalendar'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MiCalendarioPage() {
   await requireAuth()
-  return (
-    <ModulePlaceholder
-      title="Mi Calendario"
-      description="Tus entregas y pendientes."
-      icon={CalendarDays}
-      scope="empleado"
-    />
-  )
+  const orders = await getMyCalendarOrders()
+  return <EmployeeCalendar orders={orders} todayISO={todayDR()} />
 }
