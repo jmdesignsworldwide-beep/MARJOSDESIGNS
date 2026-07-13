@@ -30,12 +30,14 @@ export function CalendarBoard({
   occurrenceStates,
   categories,
   todayISO,
+  overloadWarn,
 }: {
   orders: CalendarOrder[]
   notes: CalendarNote[]
   occurrenceStates: NoteOccurrenceState[]
   categories: ExpenseCategory[]
   todayISO: string
+  overloadWarn?: number
 }) {
   const [view, setView] = useState<View>('mes')
   const [anchor, setAnchor] = useState(todayISO)
@@ -188,10 +190,10 @@ export function CalendarBoard({
 
       {/* Active view */}
       {view === 'mes' && (
-        <MonthView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={notesByDate} onSelectOrder={setSelected} onSelectNote={selectNote} onDayClick={(iso) => { setAnchor(iso); changeView('dia') }} onDropOrder={onDropOrder} canDrag={canDrag} />
+        <MonthView anchor={anchor} todayISO={todayISO} overloadWarn={overloadWarn} ordersByDate={ordersByDate} notesByDate={notesByDate} onSelectOrder={setSelected} onSelectNote={selectNote} onDayClick={(iso) => { setAnchor(iso); changeView('dia') }} onDropOrder={onDropOrder} canDrag={canDrag} />
       )}
       {view === 'semana' && (
-        <WeekView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={notesByDate} onSelectOrder={setSelected} onSelectNote={selectNote} onAddNote={(iso) => setNote({ open: true, date: iso, editing: null })} />
+        <WeekView anchor={anchor} todayISO={todayISO} overloadWarn={overloadWarn} ordersByDate={ordersByDate} notesByDate={notesByDate} onSelectOrder={setSelected} onSelectNote={selectNote} onAddNote={(iso) => setNote({ open: true, date: iso, editing: null })} />
       )}
       {view === 'dia' && (
         <DayView anchor={anchor} todayISO={todayISO} orders={ordersByDate.get(anchor) ?? []} notes={notesByDate.get(anchor) ?? []} onSelectOrder={setSelected} onEditNote={selectNote} />

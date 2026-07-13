@@ -7,6 +7,7 @@ import { orderCalState, calStateMeta, noteKindMeta, OVERLOAD_WARN, type Calendar
 export function MonthView({
   anchor,
   todayISO,
+  overloadWarn = OVERLOAD_WARN,
   ordersByDate,
   notesByDate,
   onSelectOrder,
@@ -17,6 +18,7 @@ export function MonthView({
 }: {
   anchor: string
   todayISO: string
+  overloadWarn?: number
   ordersByDate: Map<string, CalendarOrder[]>
   notesByDate: Map<string, CalendarOccurrence[]>
   onSelectOrder: (o: CalendarOrder) => void
@@ -41,7 +43,7 @@ export function MonthView({
           const orders = ordersByDate.get(iso) ?? []
           const notes = notesByDate.get(iso) ?? []
           const active = orders.filter((o) => o.stage !== 'entregada')
-          const overloaded = active.length >= OVERLOAD_WARN
+          const overloaded = active.length >= overloadWarn
           return (
             <div
               key={iso}

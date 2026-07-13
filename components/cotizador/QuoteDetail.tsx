@@ -14,6 +14,7 @@ import { formatSqft } from '@/lib/cotizador/calc'
 import { quoteCode } from '@/lib/cotizador/format'
 import { convertQuoteToOrder } from '@/app/(app)/ordenes/actions'
 import type { Quote, QuoteLine } from '@/lib/cotizador/data'
+import type { BusinessInfo } from '@/lib/settings/types'
 
 function lineBreakdown(l: QuoteLine): string {
   if (l.calc_type === 'area') {
@@ -22,7 +23,10 @@ function lineBreakdown(l: QuoteLine): string {
   return `${l.quantity ?? 0} × ${formatDOP(l.unit_price)}`
 }
 
-export function QuoteDetail({ quote, lines }: { quote: Quote; lines: QuoteLine[] }) {
+export function QuoteDetail({ quote, lines, business }: { quote: Quote; lines: QuoteLine[]; business: BusinessInfo }) {
+  const contactLine = [business.phone, business.whatsapp ? `WhatsApp ${business.whatsapp}` : null, business.email, business.instagram]
+    .filter(Boolean)
+    .join(' · ')
   const [converting, setConverting] = useState(false)
   const ref = useRef<HTMLParagraphElement>(null)
   const inView = useInView(ref, { once: true, amount: 0.5 })
@@ -53,7 +57,11 @@ export function QuoteDetail({ quote, lines }: { quote: Quote; lines: QuoteLine[]
           <div className="flex items-center gap-3">
             <span className="grid h-12 w-12 place-items-center rounded-xl bg-gold-gradient text-lg font-bold text-charcoal-900">MD</span>
             <div>
-              <p className="text-lg font-bold tracking-tight">Marjos Designs S.R.L.</p>
+              <p className="text-lg font-bold tracking-tight">{business.legalName || business.name}</p>
+              {contactLine ? (
+                <p className="text-xs text-muted-foreground">{contactLine}</p>
+              ) : null}
+              {business.rnc && <p className="text-xs text-muted-foreground">RNC {business.rnc}</p>}
               <p className="text-xs text-muted-foreground">Cotización · comprobante interno (no fiscal)</p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import 'server-only'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { roundMoney } from '@/lib/cotizador/calc'
+import { getSettings } from '@/lib/settings/data'
 import { ACTIVE_STAGES, type OrderStage } from '@/lib/ordenes/format'
 
 export interface DeliveryNotice {
@@ -33,7 +34,10 @@ function daysBetween(deliveryISO: string, today: Date): number {
 export async function getDeliveryNotices(): Promise<DeliveryNotice[]> {
   const supabase = createSupabaseServerClient()
   const today = todayInDR()
-  const horizon = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
+  // The horizon is the largest configured anticipation day (Ajustes → Alertas).
+  const settings = await getSettings()
+  const horizonDays = Math.max(0, ...settings.notifyDays)
+  const horizon = new Date(today.getTime() + horizonDays * 24 * 60 * 60 * 1000)
   const horizonISO = horizon.toISOString().slice(0, 10)
 
   const { data } = await supabase

@@ -46,7 +46,7 @@ export const navItems: NavItem[] = [
   { label: 'Proveedores', icon: Truck, href: '/proveedores', roles: ['super_admin'] },
   { label: 'Inventario', icon: Package, href: '/inventario', roles: ['super_admin'] },
   { label: 'Usuarios', icon: UserCog, href: '/usuarios', roles: ['super_admin'] },
-  { label: 'Ajustes', icon: Settings, href: '/ajustes', roles: ['super_admin'], placeholder: true },
+  { label: 'Ajustes', icon: Settings, href: '/ajustes', roles: ['super_admin'] },
 ]
 
 /** Items visible to a role. With no role (design showcase) show everything. */

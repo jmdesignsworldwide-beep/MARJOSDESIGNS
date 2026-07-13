@@ -1,17 +1,12 @@
-import { Settings } from 'lucide-react'
 import { requireRole } from '@/lib/auth/guards'
-import { ModulePlaceholder } from '@/components/ModulePlaceholder'
+import { getSettings } from '@/lib/settings/data'
+import { AjustesBoard } from '@/components/ajustes/AjustesBoard'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AjustesPage() {
+  // Doubly guarded: only super_admin reaches this page (employees bounce).
   await requireRole('super_admin')
-  return (
-    <ModulePlaceholder
-      title="Ajustes"
-      description="Configuración del sistema."
-      icon={Settings}
-      scope="admin"
-    />
-  )
+  const settings = await getSettings()
+  return <AjustesBoard settings={settings} />
 }
