@@ -18,10 +18,12 @@ export function CajaBoard({
   register,
   summary,
   movements,
+  clients = [],
 }: {
   register: CashRegister | null
   summary: CashSummary | null
   movements: CashMovement[]
+  clients?: { id: string; name: string }[]
 }) {
   const [manualOpen, setManualOpen] = useState(false)
 
@@ -111,7 +113,7 @@ export function CajaBoard({
         </Card>
       )}
 
-      <ManualMovementModal open={manualOpen} onClose={() => setManualOpen(false)} />
+      <ManualMovementModal open={manualOpen} onClose={() => setManualOpen(false)} clients={clients} />
     </div>
   )
 }

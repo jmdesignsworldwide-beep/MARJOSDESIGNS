@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Plus, Trash2, Tag, Percent, UserPlus, PackagePlus, Save, CalendarClock } from 'lucide-react'
+import { Plus, Trash2, Tag, Percent, PackagePlus, Save, CalendarClock } from 'lucide-react'
 import { cn, formatDOP } from '@/lib/utils'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -12,7 +12,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Field'
 import { useToast } from '@/components/ui/Toast'
 import { ProductForm } from '@/components/cotizador/ProductForm'
-import { ClientForm } from '@/components/clientes/ClientForm'
+import { ClientPicker } from '@/components/clientes/ClientPicker'
 import { computeLine, computeTotals, formatSqft, type CalcType } from '@/lib/cotizador/calc'
 import { createOrder } from '@/app/(app)/ordenes/actions'
 import type { Product } from '@/lib/cotizador/data'
@@ -57,7 +57,6 @@ export function OrderBuilder({
   const [deliveryDate, setDeliveryDate] = useState('')
   const [notes, setNotes] = useState('')
   const [newProduct, setNewProduct] = useState(false)
-  const [newClient, setNewClient] = useState(false)
   const [saving, setSaving] = useState(false)
 
   function addLine(productId: string) {
@@ -157,15 +156,8 @@ export function OrderBuilder({
           <Card className="space-y-4">
             <h2 className="text-base font-semibold">Orden</h2>
 
-            <Field label="Cliente">
-              <div className="flex gap-2">
-                <NativeSelect value={clientId} onChange={setClientId}>
-                  <option value="">Sin cliente (general)</option>
-                  {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </NativeSelect>
-                <Button variant="secondary" size="sm" onClick={() => setNewClient(true)} className="shrink-0"><UserPlus className="h-4 w-4" /></Button>
-              </div>
-            </Field>
+            <ClientPicker clients={clients} value={clientId} onChange={setClientId} />
+
 
             <Field label="Empleada asignada">
               <NativeSelect value={assignedTo} onChange={setAssignedTo}>
@@ -221,9 +213,6 @@ export function OrderBuilder({
       </div>
 
       <Modal open={newProduct} onClose={() => setNewProduct(false)} title="Nuevo producto"><ProductForm onDone={() => { setNewProduct(false); router.refresh() }} /></Modal>
-      <Modal open={newClient} onClose={() => setNewClient(false)} title="Nuevo cliente">
-        <ClientForm mode="create" onDone={(id) => { setNewClient(false); if (id) setClientId(id); router.refresh() }} />
-      </Modal>
     </div>
   )
 }

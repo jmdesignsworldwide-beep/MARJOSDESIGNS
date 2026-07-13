@@ -31,7 +31,8 @@ export const createSaleSchema = z.object({
   method: cashMethod,
   reference: z.string().trim().max(120).optional().or(z.literal('')),
   cashReceived: z.coerce.number().finite().min(0).max(100_000_000).optional(),
-  clientName: z.string().trim().max(120).optional().or(z.literal('')),
+  // A REGISTERED client (or none). The name is resolved server-side from this id.
+  clientId: z.string().uuid().optional().or(z.literal('')),
 })
 export type CreateSaleInput = z.infer<typeof createSaleSchema>
 

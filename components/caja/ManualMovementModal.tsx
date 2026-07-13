@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input, Select } from '@/components/ui/Field'
 import { useToast } from '@/components/ui/Toast'
+import { ClientPicker } from '@/components/clientes/ClientPicker'
 import { addManualMovement, type CajaState } from '@/lib/caja/actions'
 
 const initial: CajaState = {}
@@ -15,15 +16,18 @@ function SaveBtn() {
   return <Button type="submit" loading={pending}>Registrar</Button>
 }
 
-export function ManualMovementModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function ManualMovementModal({ open, onClose, clients }: { open: boolean; onClose: () => void; clients: { id: string; name: string }[] }) {
   const [state, action] = useFormState(addManualMovement, initial)
   const [method, setMethod] = useState('efectivo')
+  const [clientId, setClientId] = useState('')
   const { toast } = useToast()
 
   useEffect(() => {
     if (state.ok) { toast({ title: 'Movimiento registrado', variant: 'success' }); onClose() }
     if (state.error) toast({ title: state.error, variant: 'error' })
   }, [state, toast, onClose])
+
+  useEffect(() => { if (open) { setMethod('efectivo'); setClientId('') } }, [open])
 
   return (
     <Modal open={open} onClose={onClose} title="Movimiento manual" description="Para dinero que no viene de una orden ni de una venta.">
@@ -40,7 +44,8 @@ export function ManualMovementModal({ open, onClose }: { open: boolean; onClose:
           <option value="credito">Crédito</option>
         </Select>
         <Input id="mv-concept" name="concept" label="Concepto" placeholder="Ej. abono suelto, compra de material" required />
-        <Input id="mv-client" name="clientName" label="Cliente (opcional)" />
+        <input type="hidden" name="clientId" value={clientId} />
+        <ClientPicker clients={clients} value={clientId} onChange={setClientId} label="Cliente (opcional)" />
         {method === 'transferencia' && (
           <Input id="mv-ref" name="reference" label="Referencia / voucher" hint="Se avisa si la referencia ya existe." />
         )}

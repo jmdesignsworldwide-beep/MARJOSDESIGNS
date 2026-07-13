@@ -98,7 +98,7 @@ export async function addManualMovement(_prev: CajaState, formData: FormData): P
     amount: formData.get('amount'),
     method: formData.get('method'),
     concept: formData.get('concept'),
-    clientName: formData.get('clientName') ?? '',
+    clientId: formData.get('clientId') ?? '',
     reference: formData.get('reference') ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' }
@@ -107,6 +107,17 @@ export async function addManualMovement(_prev: CajaState, formData: FormData): P
   const supabase = createSupabaseServerClient()
   const { data: reg } = await supabase.from('cash_registers').select('id').eq('status', 'abierta').maybeSingle()
   if (!reg) return { error: 'Abre la caja antes de registrar un movimiento.' }
+
+  // Resolve the client name from the chosen REGISTERED client (authoritative —
+  // never trust a free-text name from the browser).
+  let clientId: string | null = null
+  let clientName: string | null = null
+  if (input.clientId) {
+    const { data: client } = await supabase.from('clients').select('id, name').eq('id', input.clientId).maybeSingle()
+    if (!client) return { error: 'El cliente seleccionado no existe.' }
+    clientId = client.id as string
+    clientName = client.name as string
+  }
 
   // Duplicate-voucher guard for transfers.
   if (input.method === 'transferencia' && input.reference) {
@@ -127,7 +138,8 @@ export async function addManualMovement(_prev: CajaState, formData: FormData): P
       method: input.method,
       reference: input.reference || null,
       concept: input.concept,
-      clientName: input.clientName || null,
+      clientName,
+      clientId,
       createdBy: admin.id,
     },
     reg.id,

@@ -49,7 +49,7 @@ function lineReady(l: CartLine): boolean {
   return l.quantity > 0
 }
 
-export function PosTerminal({ products }: { products: Product[] }) {
+export function PosTerminal({ products, clients }: { products: Product[]; clients: { id: string; name: string }[] }) {
   const [query, setQuery] = useState('')
   const [cart, setCart] = useState<CartLine[]>([])
   const [discountType, setDiscountType] = useState<DiscountType>('none')
@@ -257,6 +257,7 @@ export function PosTerminal({ products }: { products: Product[] }) {
         onClose={() => setPayOpen(false)}
         total={totals.total}
         cart={cart}
+        clients={clients}
         discountType={discountType}
         discountValue={Number(discountValue) || 0}
         onPaid={onPaid}

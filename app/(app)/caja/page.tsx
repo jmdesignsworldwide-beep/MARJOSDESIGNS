@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { History } from 'lucide-react'
 import { requireRole } from '@/lib/auth/guards'
 import { getTodayRegister, listMovements, summarize } from '@/lib/caja/data'
+import { listClients } from '@/lib/clients/data'
 import { CajaBoard } from '@/components/caja/CajaBoard'
 
 export const dynamic = 'force-dynamic'
@@ -9,8 +10,12 @@ export const dynamic = 'force-dynamic'
 export default async function CajaPage() {
   await requireRole('super_admin')
   const register = await getTodayRegister()
-  const movements = register ? await listMovements(register.id) : []
+  const [movements, clients] = await Promise.all([
+    register ? listMovements(register.id) : Promise.resolve([]),
+    listClients(),
+  ])
   const summary = register ? summarize(register, movements) : null
+  const clientOptions = clients.filter((c) => c.status === 'activo').map((c) => ({ id: c.id, name: c.name }))
 
   return (
     <div>
@@ -30,7 +35,7 @@ export default async function CajaPage() {
         </Link>
       </div>
 
-      <CajaBoard register={register} summary={summary} movements={movements} />
+      <CajaBoard register={register} summary={summary} movements={movements} clients={clientOptions} />
     </div>
   )
 }
