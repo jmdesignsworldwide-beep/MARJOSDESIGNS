@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { addDays, addMonths, monthYearLabel, weekRangeLabel, dayFull } from '@/lib/calendario/dates'
-import type { CalendarOrder, CalendarNote } from '@/lib/calendario/types'
+import type { CalendarOrder, CalendarOccurrence } from '@/lib/calendario/types'
 import { MonthView } from '@/components/calendario/MonthView'
 import { WeekView } from '@/components/calendario/WeekView'
 import { DayView } from '@/components/calendario/DayView'
 import { EmployeeOrderPanel } from './EmployeeOrderPanel'
 
 type View = 'mes' | 'semana' | 'dia'
-const NO_NOTES = new Map<string, CalendarNote[]>()
+const NO_NOTES = new Map<string, CalendarOccurrence[]>()
 
 export function EmployeeCalendar({ orders, todayISO }: { orders: CalendarOrder[]; todayISO: string }) {
   const [view, setView] = useState<View>('semana')
@@ -63,8 +63,8 @@ export function EmployeeCalendar({ orders, todayISO }: { orders: CalendarOrder[]
         </div>
       </div>
 
-      {view === 'mes' && <MonthView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={NO_NOTES} onSelectOrder={setSelected} onDayClick={(iso) => { setAnchor(iso); changeView('dia') }} onDropOrder={noop} canDrag={false} />}
-      {view === 'semana' && <WeekView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={NO_NOTES} onSelectOrder={setSelected} onAddNote={noop} />}
+      {view === 'mes' && <MonthView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={NO_NOTES} onSelectOrder={setSelected} onSelectNote={noop} onDayClick={(iso) => { setAnchor(iso); changeView('dia') }} onDropOrder={noop} canDrag={false} />}
+      {view === 'semana' && <WeekView anchor={anchor} todayISO={todayISO} ordersByDate={ordersByDate} notesByDate={NO_NOTES} onSelectOrder={setSelected} onSelectNote={noop} onAddNote={noop} />}
       {view === 'dia' && <DayView anchor={anchor} todayISO={todayISO} orders={ordersByDate.get(anchor) ?? []} notes={[]} onSelectOrder={setSelected} onEditNote={noop} hideMoney />}
 
       <EmployeeOrderPanel order={selected} onClose={() => setSelected(null)} />
