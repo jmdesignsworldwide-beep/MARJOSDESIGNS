@@ -2,7 +2,7 @@
 
 import { cn, formatDOP } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
-import { groupMeta, type ExpensesOverview, type ExpenseGroup } from '@/lib/gastos/types'
+import { groupMeta, subcategoryDelta, type ExpensesOverview, type ExpenseGroup } from '@/lib/gastos/types'
 
 const groupBar: Record<ExpenseGroup, string> = {
   produccion: 'bg-status-process',
@@ -46,24 +46,34 @@ export function GastosCharts({ overview, currentMonth }: { overview: ExpensesOve
         </div>
       </Card>
 
-      {/* By category (this month) */}
+      {/* By subcategory (this month) with month-over-month delta */}
       <Card>
-        <CardHeader title="Por categoría" subtitle="Este mes" />
+        <CardHeader title="Por subcategoría" subtitle="Este mes · comparado al anterior" />
         {overview.byCategory.length === 0 ? (
           <p className="py-10 text-center text-sm text-muted-foreground">Sin gastos este mes todavía.</p>
         ) : (
           <ul className="space-y-2.5">
-            {overview.byCategory.slice(0, 6).map((c) => (
-              <li key={c.categoryId}>
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="truncate">{c.name}</span>
-                  <span className="tnum shrink-0 font-medium">{formatDOP(c.total)}</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted/50">
-                  <div className={cn('h-full rounded-full', groupBar[c.grp])} style={{ width: `${Math.max(3, Math.round((c.total / maxCat) * 100))}%` }} />
-                </div>
-              </li>
-            ))}
+            {overview.byCategory.slice(0, 6).map((c) => {
+              const delta = subcategoryDelta(c.total, c.prevTotal)
+              return (
+                <li key={c.categoryId}>
+                  <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                    <span className="truncate">{c.name}</span>
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      {delta !== null && delta !== 0 && (
+                        <span className={cn('tnum text-[11px] font-medium', delta > 0 ? 'text-status-overdue' : 'text-status-ready')}>
+                          {delta > 0 ? '▲' : '▼'} {Math.abs(delta)}%
+                        </span>
+                      )}
+                      <span className="tnum font-medium">{formatDOP(c.total)}</span>
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted/50">
+                    <div className={cn('h-full rounded-full', groupBar[c.grp])} style={{ width: `${Math.max(3, Math.round((c.total / maxCat) * 100))}%` }} />
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         )}
         <div className="mt-4 flex flex-wrap gap-3 border-t border-border pt-3 text-xs text-muted-foreground">

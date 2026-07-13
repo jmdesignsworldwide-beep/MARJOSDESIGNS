@@ -13,16 +13,82 @@ import {
   voidExpenseSchema,
   addCategorySchema,
   toggleCategorySchema,
+  receiptItemsSchema,
 } from '@/lib/validation/gastos'
-import { RECEIPTS_BUCKET } from './data'
+import { readReceiptImage, type ReceiptItem } from './ocr'
+import { RECEIPTS_BUCKET, getReceiptItems } from './data'
+import type { ReceiptItemRow } from './types'
 
 export interface GastoState {
   error?: string
   ok?: boolean
 }
 
+/** State returned by readReceipt (vision OCR). Never throws to the client. */
+export interface ReadReceiptState {
+  error?: string
+  ok?: boolean
+  readable?: boolean
+  reason?: string
+  unconfigured?: boolean
+  merchant?: string | null
+  date?: string | null
+  total?: number | null
+  items?: ReceiptItem[]
+}
+
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'application/pdf']
 const MAX_BYTES = 10 * 1024 * 1024
+
+/** Parse the hidden receiptItems JSON field into validated rows (best-effort). */
+function parseReceiptItems(raw: FormDataEntryValue | null): ReceiptItem[] {
+  if (typeof raw !== 'string' || !raw.trim()) return []
+  try {
+    const parsed = receiptItemsSchema.safeParse(JSON.parse(raw))
+    if (!parsed.success) return []
+    return parsed.data.map((it) => ({
+      name: it.name,
+      quantity: it.quantity ?? null,
+      unitPrice: it.unitPrice ?? null,
+      lineTotal: it.lineTotal ?? null,
+    }))
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Read a receipt photo with vision AI (SERVER-SIDE). Transcribes exactly what
+ * it sees; if the photo can't be read, asks for a clearer one instead of
+ * guessing. The image itself is NOT uploaded here — it stays in the form and is
+ * saved (or not) when Marjos confirms the expense.
+ */
+export async function readReceipt(_prev: ReadReceiptState, formData: FormData): Promise<ReadReceiptState> {
+  await requireRole('super_admin')
+  const file = formData.get('receipt')
+  if (!(file instanceof File) || file.size === 0) return { error: 'Sube una foto del recibo primero.' }
+  if (!ALLOWED_MIME.includes(file.type)) return { error: 'Tipo no permitido (imagen o PDF).' }
+  if (file.size > MAX_BYTES) return { error: 'El recibo supera 10 MB.' }
+
+  const base64 = Buffer.from(await file.arrayBuffer()).toString('base64')
+  const result = await readReceiptImage(base64, file.type)
+
+  if (!result.ok) {
+    if (result.kind === 'unconfigured') return { ok: true, unconfigured: true, reason: result.message }
+    return { error: result.message }
+  }
+
+  const d = result.data
+  if (!d.readable) return { ok: true, readable: false, reason: d.reason }
+  return {
+    ok: true,
+    readable: true,
+    merchant: d.merchant,
+    date: d.date,
+    total: d.total,
+    items: d.items,
+  }
+}
 
 function revalidateGastos() {
   revalidatePath('/gastos')
@@ -55,10 +121,12 @@ export async function createExpense(_prev: GastoState, formData: FormData): Prom
     isRecurring: formData.get('isRecurring') === 'on' || formData.get('isRecurring') === 'true',
     deductFromCaja: formData.get('deductFromCaja') === 'on' || formData.get('deductFromCaja') === 'true',
     productId: formData.get('productId') ?? '',
+    receiptTotal: formData.get('receiptTotal') ?? '',
   })
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Datos inválidos.' }
   const input = parsed.data
   const amount = roundMoney(input.amount)
+  const receiptItems = parseReceiptItems(formData.get('receiptItems'))
 
   // Optional receipt.
   let receiptPath: string | null = null
@@ -83,6 +151,8 @@ export async function createExpense(_prev: GastoState, formData: FormData): Prom
       is_recurring: !!input.isRecurring,
       receipt_path: receiptPath,
       product_id: input.productId || null,
+      receipt_read: receiptItems.length > 0,
+      receipt_total: input.receiptTotal ?? null,
       created_by: admin.id,
     })
     .select('id')
@@ -91,6 +161,21 @@ export async function createExpense(_prev: GastoState, formData: FormData): Prom
   if (error || !row) {
     if (receiptPath) await createSupabaseAdminClient().storage.from(RECEIPTS_BUCKET).remove([receiptPath])
     return { error: 'No se pudo registrar el gasto.' }
+  }
+
+  // Persist the transcribed receipt lines (consumption history — best-effort;
+  // never blocks the expense itself).
+  if (receiptItems.length > 0) {
+    await supabase.from('expense_receipt_items').insert(
+      receiptItems.map((it, i) => ({
+        expense_id: row.id,
+        name: it.name,
+        quantity: it.quantity,
+        unit_price: it.unitPrice,
+        line_total: it.lineTotal,
+        position: i,
+      })),
+    )
   }
 
   // Caja hook (opt-in): an efectivo expense leaves today's open drawer.
@@ -216,6 +301,13 @@ export async function voidExpense(_prev: GastoState, formData: FormData): Promis
   await logAudit({ actorId: admin.id, action: 'expense.void', targetType: 'expense', targetId: String(id), details: { reason, amount: Number(exp.amount) } })
   revalidateGastos()
   return { ok: true }
+}
+
+/** Load the transcribed lines of one receipt on demand (behind "Ver detalle"). */
+export async function fetchReceiptItems(expenseId: number): Promise<ReceiptItemRow[]> {
+  await requireRole('super_admin')
+  if (!Number.isInteger(expenseId) || expenseId <= 0) return []
+  return getReceiptItems(expenseId)
 }
 
 export async function addCategory(_prev: GastoState, formData: FormData): Promise<GastoState> {
