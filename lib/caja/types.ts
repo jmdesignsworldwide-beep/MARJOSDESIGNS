@@ -35,5 +35,12 @@ export interface CashMovement {
 export interface CashSummary {
   byMethod: Record<CashMethod, number>
   totalIn: number
+  /** Gross money that came IN today (all methods, entradas). */
+  grossIn: number
+  /** Gross money that went OUT today (all methods, salidas). */
+  grossOut: number
+  /** Cash-only (efectivo) in/out — drives the physical drawer count. */
+  cashIn: number
+  cashOut: number
   expectedCash: number
 }

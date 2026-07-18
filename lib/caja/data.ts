@@ -87,12 +87,31 @@ export function summarize(register: CashRegister, movements: CashMovement[]): Ca
     debito: 0,
     credito: 0,
   }
+  let grossIn = 0
+  let grossOut = 0
+  let cashIn = 0
+  let cashOut = 0
   for (const m of movements) {
     const signed = m.direction === 'salida' ? -m.amount : m.amount
     byMethod[m.method] += signed
+    if (m.direction === 'salida') {
+      grossOut += m.amount
+      if (m.method === 'efectivo') cashOut += m.amount
+    } else {
+      grossIn += m.amount
+      if (m.method === 'efectivo') cashIn += m.amount
+    }
   }
   for (const k of CASH_METHODS) byMethod[k] = roundMoney(byMethod[k])
   const totalIn = roundMoney(CASH_METHODS.reduce((s, k) => s + byMethod[k], 0))
   const expectedCash = roundMoney(register.opening_float + byMethod.efectivo)
-  return { byMethod, totalIn, expectedCash }
+  return {
+    byMethod,
+    totalIn,
+    grossIn: roundMoney(grossIn),
+    grossOut: roundMoney(grossOut),
+    cashIn: roundMoney(cashIn),
+    cashOut: roundMoney(cashOut),
+    expectedCash,
+  }
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Lock, Wallet, AlertTriangle, PartyPopper } from 'lucide-react'
+import { Plus, Lock, Wallet, AlertTriangle, PartyPopper, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import { cn, formatDOP } from '@/lib/utils'
 import { Card, CardHeader } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -26,8 +26,11 @@ export function CajaBoard({
   clients?: { id: string; name: string }[]
 }) {
   const [manualOpen, setManualOpen] = useState(false)
+  const [dir, setDir] = useState<'todos' | 'entrada' | 'salida'>('todos')
 
   if (!register || !summary) return <OpenRegisterForm />
+
+  const shownMovements = dir === 'todos' ? movements : movements.filter((m) => m.direction === dir)
 
   const closed = register.status === 'cerrada'
 
@@ -59,12 +62,24 @@ export function CajaBoard({
               {formatDOP(summary.expectedCash)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Fondo inicial {formatDOP(register.opening_float)} + efectivo del día {formatDOP(summary.byMethod.efectivo)}
+              Fondo {formatDOP(register.opening_float)} + entró {formatDOP(summary.cashIn)} en efectivo − salió {formatDOP(summary.cashOut)}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wider text-muted-foreground">Total del día</p>
-            <p className="tnum text-2xl font-bold">{formatDOP(summary.totalIn)}</p>
+        </div>
+
+        {/* Las dos caras del día: entró vs salió */}
+        <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4">
+          <div className="rounded-xl bg-status-ready/10 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-status-ready"><ArrowDownLeft className="h-3.5 w-3.5" />Ingresos</div>
+            <p className="tnum mt-1 text-lg font-bold text-status-ready">{formatDOP(summary.grossIn)}</p>
+          </div>
+          <div className="rounded-xl bg-status-overdue/10 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-status-overdue"><ArrowUpRight className="h-3.5 w-3.5" />Egresos</div>
+            <p className="tnum mt-1 text-lg font-bold text-status-overdue">− {formatDOP(summary.grossOut)}</p>
+          </div>
+          <div className="rounded-xl bg-muted/50 px-3 py-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Wallet className="h-3.5 w-3.5" />Neto del día</div>
+            <p className="tnum mt-1 text-lg font-bold">{formatDOP(summary.grossIn - summary.grossOut)}</p>
           </div>
         </div>
       </Card>
@@ -91,8 +106,8 @@ export function CajaBoard({
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <Card>
-              <CardHeader title="Movimientos del día" subtitle="Pagos de órdenes, ventas y manuales — en vivo" />
-              <MovementsList movements={movements} />
+              <CardHeader title="Movimientos del día" subtitle="Ingresos y egresos — en vivo" action={<DirFilter dir={dir} onChange={setDir} />} />
+              <MovementsList movements={shownMovements} />
             </Card>
           </div>
           <div className="lg:col-span-1">
@@ -108,12 +123,37 @@ export function CajaBoard({
 
       {closed && (
         <Card>
-          <CardHeader title="Movimientos del día" subtitle="Registro permanente e inviolable" />
-          <MovementsList movements={movements} />
+          <CardHeader title="Movimientos del día" subtitle="Registro permanente e inviolable" action={<DirFilter dir={dir} onChange={setDir} />} />
+          <MovementsList movements={shownMovements} />
         </Card>
       )}
 
       <ManualMovementModal open={manualOpen} onClose={() => setManualOpen(false)} clients={clients} />
+    </div>
+  )
+}
+
+function DirFilter({ dir, onChange }: { dir: 'todos' | 'entrada' | 'salida'; onChange: (d: 'todos' | 'entrada' | 'salida') => void }) {
+  const opts: { v: 'todos' | 'entrada' | 'salida'; label: string }[] = [
+    { v: 'todos', label: 'Todos' },
+    { v: 'entrada', label: 'Ingresos' },
+    { v: 'salida', label: 'Egresos' },
+  ]
+  return (
+    <div className="flex items-center gap-1 rounded-lg border border-border p-0.5">
+      {opts.map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => onChange(o.v)}
+          className={cn(
+            'rounded-md px-2 py-1 text-xs font-medium transition-colors',
+            dir === o.v ? 'bg-gold-gradient-soft text-gold-brand' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
     </div>
   )
 }
